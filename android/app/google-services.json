@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "78423179368",
+    "project_id": "fresh-market-f1ca6",
+    "storage_bucket": "fresh-market-f1ca6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:78423179368:android:f5463303cc50d3b1f17bdd",
+        "android_client_info": {
+          "package_name": "com.freshmarket.freshmarket"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTPxhcSEcaV_ZuuIb1xOOaexvg200mwn0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

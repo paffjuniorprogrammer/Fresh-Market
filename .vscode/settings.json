@@ -1,0 +1,11 @@
+{
+  "java.import.exclusions": [
+    "android",
+    "ios",
+    "build",
+    ".dart_tool"
+  ],
+  "java.project.importHint": false,
+  "java.autobuild.enabled": false,
+  "cmake.sourceDirectory": "C:/Users/PAFF-DADDY/OneDrive/Desktop/Fresh Market/Fresh Market/linux"
+}
