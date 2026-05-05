@@ -364,3 +364,5 @@ The included Supabase SQL file is required for the app to work correctly.
 
 
 
+#   F r e s h - M a r k e t  
+ 
