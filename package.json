@@ -2,6 +2,6 @@
   "name": "fresh-market-pafly",
   "version": "1.0.0",
   "scripts": {
-    "build": "if [ ! -d \"$HOME/flutter\" ]; then git clone https://github.com/flutter/flutter.git --depth 1 -b stable $HOME/flutter; fi && $HOME/flutter/bin/flutter build web --release --base-href /"
+    "build": "if [ ! -d \"$HOME/flutter\" ]; then git clone https://github.com/flutter/flutter.git --depth 1 -b stable $HOME/flutter; fi && $HOME/flutter/bin/flutter build web --release --base-href / && mv build/web public"
   }
 }
