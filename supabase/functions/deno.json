@@ -1,0 +1,7 @@
+{
+  "workspace": [
+    "./notify-admin-new-order",
+    "./notify-client-event",
+    "./record-order-payment"
+  ]
+}
