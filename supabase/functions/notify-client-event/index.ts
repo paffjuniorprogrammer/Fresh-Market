@@ -235,8 +235,8 @@ function buildOrderMessage(
 
   if (eventType === "order_status") {
     return {
-      title: status.toLowerCase() === "completed" ? "🛒 Order Fully Paid" : "🛒 Fresh Market Update",
-      body: `Thanks for shopping in Fresh Market!\n\n` + (status.toLowerCase() === "completed"
+      title: status.toLowerCase() === "completed" ? "🛒 Order Fully Paid" : "🛒 PAFLY Update",
+      body: `Thanks for shopping in PAFLY!\n\n` + (status.toLowerCase() === "completed"
         ? `${orderLabel} is now fully paid and completed.`
         : `${orderLabel} is now ${status}.`),
       data: {
@@ -254,7 +254,7 @@ function buildOrderMessage(
   const fullyPaid = status.toLowerCase() === "completed";
   return {
     title: fullyPaid ? "🛒 Order Fully Paid" : "💵 Payment Received",
-    body: `Thanks for shopping in Fresh Market!\n\n` + (fullyPaid
+    body: `Thanks for shopping in PAFLY!\n\n` + (fullyPaid
       ? paymentAmount > 0
         ? `${formatCurrency(paymentAmount)} Frw was received for ${orderLabel}. Your order is now fully paid.`
         : `${orderLabel} is now fully paid.`

@@ -105,7 +105,7 @@ class _FreshMarketScreenState extends State<FreshMarketScreen> {
                 vertical: 18,
               ),
               title: const Text(
-                'Fresh Market',
+                'PAFLY',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,

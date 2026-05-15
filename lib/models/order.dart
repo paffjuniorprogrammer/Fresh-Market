@@ -54,7 +54,9 @@ class Order {
   final double? quantityKg;
   final double? pricePerKg;
   final String? unit;
+  /// After-discount total stored in DB (total_price column)
   final double totalPrice;
+  /// Original delivery fee (unchanged even when free_delivery promo applied)
   final double deliveryFee;
   final double paidAmount;
   final bool isCredit;
@@ -62,6 +64,10 @@ class Order {
   final String? cancelReason;
   final String status;
   final DateTime? createdAt;
+  /// Amount discounted by promo code (0 if no promo applied)
+  final double discountAmount;
+  /// Promo code UUID if applied
+  final String? promoCodeId;
 
   Order({
     required this.id,
@@ -87,11 +93,22 @@ class Order {
     this.cancelReason,
     this.status = 'Pending',
     this.createdAt,
+    this.discountAmount = 0,
+    this.promoCodeId,
   });
 
-  double get balance => (totalPrice + deliveryFee) - paidAmount;
-  bool get isPaid => paidAmount >= (totalPrice + deliveryFee);
+  /// Balance owed = after-discount total - amount paid
+  double get balance {
+    final b = totalPrice - paidAmount;
+    if (b <= 0) return 0;
+    return double.parse(b.toStringAsFixed(2));
+  }
+
+  bool get isPaid => paidAmount >= totalPrice;
+
   String get idStr => id.toString();
+
+  /// Product subtotal before delivery and discount
   double get itemsSubtotal {
     if (items.isNotEmpty) {
       return items.fold(0, (sum, item) => sum + item.totalPrice);
@@ -99,7 +116,8 @@ class Order {
     if (quantityKg != null && pricePerKg != null) {
       return quantityKg! * pricePerKg!;
     }
-    return (totalPrice - deliveryFee).clamp(0, double.infinity);
+    // totalPrice is after discount; add discount back then subtract delivery
+    return (totalPrice + discountAmount - deliveryFee).clamp(0, double.infinity);
   }
 
   String get displayProductName {
@@ -181,6 +199,9 @@ class Order {
       createdAt: (json['o_created_at'] ?? json['created_at']) != null
           ? DateTime.parse('${json['o_created_at'] ?? json['created_at']}')
           : null,
+      discountAmount:
+          ((json['discount_amount'] ?? 0) as num?)?.toDouble() ?? 0,
+      promoCodeId: json['promo_code_id']?.toString(),
     );
   }
 }

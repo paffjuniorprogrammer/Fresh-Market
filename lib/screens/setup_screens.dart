@@ -14,7 +14,7 @@ class StartupLoadingScreen extends StatelessWidget {
         child: BrandedLoadingIndicator(
           size: 94,
           logoSize: 48,
-          label: 'Welcome in Fresh Market...',
+          label: 'Welcome to PAFLY...',
         ),
       ),
     );
@@ -55,8 +55,13 @@ class StartupErrorScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                isNetworkError ? 'No Internet Connection' : 'Supabase failed to initialize:',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                isNetworkError
+                    ? 'No Internet Connection'
+                    : 'Supabase failed to initialize:',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
@@ -74,9 +79,14 @@ class StartupErrorScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppUi.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: const Text('Try Again', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Try Again',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -135,7 +145,7 @@ class DatabaseSetupRequiredScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Fresh Market Setup')),
+      appBar: AppBar(title: const Text('PAFLY Setup')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
@@ -161,4 +171,3 @@ class DatabaseSetupRequiredScreen extends StatelessWidget {
     );
   }
 }
-

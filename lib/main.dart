@@ -8,6 +8,7 @@ import 'package:potato_app/services/auth_flow_state.dart';
 import 'package:potato_app/services/notification_service.dart';
 import 'package:potato_app/services/push_notification_service.dart';
 import 'package:potato_app/screens/auth_router.dart';
+import 'package:potato_app/services/pwa_service.dart';
 import 'package:potato_app/utils/app_ui.dart';
 import 'package:potato_app/utils/constants.dart';
 
@@ -19,6 +20,7 @@ void main() async {
     anonKey: AppConstants.supabaseAnonKey,
   );
 
+  PwaService.instance.init();
   runApp(const PotatoApp());
 }
 
@@ -65,7 +67,7 @@ class _PotatoAppState extends State<PotatoApp> {
   }
 
   Future<void> _handleIncomingLink(Uri uri) async {
-    if (uri.scheme != 'freshmarket') {
+    if (uri.scheme != 'pafly') {
       return;
     }
 
@@ -78,7 +80,31 @@ class _PotatoAppState extends State<PotatoApp> {
       }
       await Supabase.instance.client.auth.getSessionFromUrl(uri);
     } catch (error) {
-      debugPrint('Auth deep link handling skipped: $error');
+      debugPrint('Auth deep link handling error: $error');
+      
+      // Clear pending states if error occurs
+      AuthFlowState.instance.clearPasswordRecoveryPending();
+      AuthFlowState.instance.clearSignupConfirmationPending();
+
+      final errorStr = error.toString().toLowerCase();
+      String userMessage = 'The link is invalid or has expired.';
+      
+      if (errorStr.contains('expired')) {
+        userMessage = 'This email link has already been used or has expired. Please request a new one.';
+      } else if (errorStr.contains('pkce')) {
+        userMessage = 'Authentication session mismatch. Please try again from the login screen.';
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        NotificationService.instance.messengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(userMessage),
+            backgroundColor: Colors.red.shade800,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      });
     }
   }
 
@@ -108,7 +134,7 @@ class _PotatoAppState extends State<PotatoApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Fresh Market',
+      title: 'PAFLY',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppUi.primary,
@@ -125,7 +151,3 @@ class _PotatoAppState extends State<PotatoApp> {
     );
   }
 }
-
-
-
-

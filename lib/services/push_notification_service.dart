@@ -25,13 +25,13 @@ class PushNotificationService {
   static final PushNotificationService instance = PushNotificationService._();
 
   static const _ordersChannelId = 'fresh_market_orders';
-  static const _ordersChannelName = 'Fresh Market Orders';
+  static const _ordersChannelName = 'PAFLY Orders';
   static const _ordersChannelDescription =
       'Loud admin alerts for new client orders and cancellations.';
   static const _updatesChannelId = 'fresh_market_updates';
-  static const _updatesChannelName = 'Fresh Market Updates';
+  static const _updatesChannelName = 'PAFLY Updates';
   static const _updatesChannelDescription =
-      'Client payment and order status updates from Fresh Market.';
+      'Client payment and order status updates from PAFLY.';
 
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
@@ -61,11 +61,23 @@ class PushNotificationService {
 
     await _initializeLocalNotifications();
 
-    if (kIsWeb) return;
-
     try {
-      await Firebase.initializeApp();
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      if (kIsWeb) {
+        await Firebase.initializeApp(
+          options: const FirebaseOptions(
+            apiKey: AppConstants.firebaseApiKey,
+            appId: AppConstants.firebaseAppId,
+            messagingSenderId: AppConstants.firebaseMessagingSenderId,
+            projectId: AppConstants.firebaseProjectId,
+          ),
+        );
+      } else {
+        await Firebase.initializeApp();
+      }
+
+      if (!kIsWeb) {
+        FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      }
 
       await FirebaseMessaging.instance.requestPermission(
         alert: true,
@@ -82,14 +94,14 @@ class PushNotificationService {
   }
 
   Future<void> registerAdminDevice(String userId) => _registerDevice(
-        userId: userId,
-        tokenTable: AppConstants.adminTokensTable,
-      );
+    userId: userId,
+    tokenTable: AppConstants.adminTokensTable,
+  );
 
   Future<void> registerClientDevice(String userId) => _registerDevice(
-        userId: userId,
-        tokenTable: AppConstants.clientTokensTable,
-      );
+    userId: userId,
+    tokenTable: AppConstants.clientTokensTable,
+  );
 
   Future<void> _registerDevice({
     required String userId,
@@ -106,7 +118,15 @@ class PushNotificationService {
     _registeredUserId = userId;
     _registeredTokenTable = tokenTable;
 
-    final token = await FirebaseMessaging.instance.getToken();
+    String? token;
+    if (kIsWeb) {
+      token = await FirebaseMessaging.instance.getToken(
+        vapidKey: AppConstants.firebaseVapidKey,
+      );
+    } else {
+      token = await FirebaseMessaging.instance.getToken();
+    }
+
     if (token != null && token.isNotEmpty) {
       await _upsertDeviceToken(tokenTable, userId, token);
       await _removeTokenFromOtherTable(tokenTable, token);
@@ -115,12 +135,12 @@ class PushNotificationService {
     }
 
     await _tokenRefreshSubscription?.cancel();
-    _tokenRefreshSubscription =
-        FirebaseMessaging.instance.onTokenRefresh.listen((token) async {
-      if (token.isEmpty) return;
-      await _upsertDeviceToken(tokenTable, userId, token);
-      await _removeTokenFromOtherTable(tokenTable, token);
-    });
+    _tokenRefreshSubscription = FirebaseMessaging.instance.onTokenRefresh
+        .listen((token) async {
+          if (token.isEmpty) return;
+          await _upsertDeviceToken(tokenTable, userId, token);
+          await _removeTokenFromOtherTable(tokenTable, token);
+        });
   }
 
   Future<void> notifyAdminsOfOrderEvent({
@@ -156,15 +176,14 @@ class PushNotificationService {
     required String paymentMethod,
     required double totalPrice,
     String? orderDetails,
-  }) =>
-      notifyAdminsOfOrderEvent(
-        eventType: 'new_order',
-        orderId: orderId,
-        customerName: customerName,
-        paymentMethod: paymentMethod,
-        totalPrice: totalPrice,
-        orderDetails: orderDetails,
-      );
+  }) => notifyAdminsOfOrderEvent(
+    eventType: 'new_order',
+    orderId: orderId,
+    customerName: customerName,
+    paymentMethod: paymentMethod,
+    totalPrice: totalPrice,
+    orderDetails: orderDetails,
+  );
 
   Future<void> notifyClientEvent({
     required String eventType,
@@ -283,10 +302,11 @@ class PushNotificationService {
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     final notification = message.notification;
+    final businessName = AppConstants.defaultBusinessName; // This is 'PAFLY'
     final title =
         notification?.title ??
         _foregroundTitleFromData(message.data) ??
-        'Fresh Market';
+        businessName;
     final body =
         notification?.body ??
         _foregroundBodyFromData(message.data) ??
@@ -325,8 +345,12 @@ class PushNotificationService {
 
     switch (eventType) {
       case 'new_order':
-        final customerLabel = customerName.isNotEmpty ? customerName : 'A client';
-        final orderLabel = orderId.isNotEmpty ? 'Order #$orderId' : 'A new order';
+        final customerLabel = customerName.isNotEmpty
+            ? customerName
+            : 'A client';
+        final orderLabel = orderId.isNotEmpty
+            ? 'Order #$orderId'
+            : 'A new order';
         final paymentLabel = paymentMethod.isNotEmpty
             ? paymentMethod
             : 'Unspecified payment';
@@ -336,14 +360,18 @@ class PushNotificationService {
         final body = '$customerLabel placed $orderLabel. - $paymentLabel';
         return amountLabel == null ? body : '$body - $amountLabel';
       case 'order_cancelled':
-        final customerLabel = customerName.isNotEmpty ? customerName : 'A client';
+        final customerLabel = customerName.isNotEmpty
+            ? customerName
+            : 'A client';
         final orderLabel = orderId.isNotEmpty ? 'order #$orderId' : 'an order';
         if (cancelReason.isNotEmpty) {
           return '$customerLabel cancelled $orderLabel: $cancelReason';
         }
         return '$customerLabel cancelled $orderLabel.';
       case 'payment_received':
-        final orderLabel = orderId.isNotEmpty ? 'Order #$orderId' : 'Your order';
+        final orderLabel = orderId.isNotEmpty
+            ? 'Order #$orderId'
+            : 'Your order';
         final amountLabel = paymentAmount == null || paymentAmount <= 0
             ? 'A payment'
             : '${paymentAmount.toStringAsFixed(0)} Frw';
@@ -352,7 +380,9 @@ class PushNotificationService {
         }
         return '$amountLabel was received for $orderLabel.';
       case 'order_status':
-        final orderLabel = orderId.isNotEmpty ? 'Order #$orderId' : 'Your order';
+        final orderLabel = orderId.isNotEmpty
+            ? 'Order #$orderId'
+            : 'Your order';
         if (orderStatus == 'completed') {
           return '$orderLabel is now fully paid and completed.';
         }

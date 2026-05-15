@@ -11,12 +11,12 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
     <application
-        android:label="Fresh Market"
+        android:label="PAFLY"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="fresh_market_orders" />
+            android:value="pafly_orders" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_notification" />
@@ -52,7 +52,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="freshmarket" />
+                <data android:scheme="pafly" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

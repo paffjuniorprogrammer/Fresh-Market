@@ -3,9 +3,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class PotatoBackgroundService {
   static const notificationChannelId = 'fresh_market_orders';
-  static const notificationChannelName = 'Fresh Market Orders';
+  static const notificationChannelName = 'PAFLY Orders';
   static const notificationChannelDescription =
-      'Local notification channel for Fresh Market alerts.';
+      'Local notification channel for PAFLY alerts';
 
   static Future<void> initializeService() async {
     if (kIsWeb) {
@@ -25,7 +25,8 @@ class PotatoBackgroundService {
 
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
   }
 }

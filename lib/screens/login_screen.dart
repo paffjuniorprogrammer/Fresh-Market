@@ -58,10 +58,8 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => ConfirmAccountScreen(
-              email: identifier,
-              phone: null,
-            ),
+            builder: (_) =>
+                ConfirmAccountScreen(email: identifier, phone: null),
           ),
         );
         return;
@@ -80,10 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => ConfirmAccountScreen(
-                email: identifier,
-                phone: null,
-              ),
+              builder: (_) =>
+                  ConfirmAccountScreen(email: identifier, phone: null),
             ),
           );
           return;
@@ -222,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF5F8EF), Color(0xFFE5F1DB)],
+            colors: [Color(0xFFF0F4FF), Color(0xFFE0E7FF)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -276,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(width: 12),
                               const Text(
-                                'Fresh Market',
+                                'PAFLY',
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w900,

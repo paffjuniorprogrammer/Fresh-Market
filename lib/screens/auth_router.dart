@@ -9,6 +9,7 @@ import '../services/push_notification_service.dart';
 import 'login_screen.dart';
 import 'password_reset_screen.dart';
 import 'client_dashboard.dart';
+import 'guest_browse_screen.dart';
 import 'package:potato_app/screens/admin_control_screen.dart';
 import 'setup_screens.dart';
 import '../widgets/branded_loading_indicator.dart';
@@ -190,7 +191,6 @@ class _RoleLookupFailureScreen extends StatelessWidget {
   }
 }
 
-
 class AuthRouter extends StatefulWidget {
   const AuthRouter({super.key});
 
@@ -230,13 +230,9 @@ class _AuthRouterState extends State<AuthRouter> {
             ?.trim()
             .toLowerCase();
         if (currentEmail == 'paffpro01@gmail.com') {
-          return <String, dynamic>{
-            'role': 'admin',
-          };
+          return <String, dynamic>{'role': 'admin'};
         }
-        return <String, dynamic>{
-          'role': 'client',
-        };
+        return <String, dynamic>{'role': 'client'};
       }
 
       return Map<String, dynamic>.from(value as Map);
@@ -246,13 +242,9 @@ class _AuthRouterState extends State<AuthRouter> {
           ?.trim()
           .toLowerCase();
       if (currentEmail == 'paffpro01@gmail.com') {
-        return <String, dynamic>{
-          'role': 'admin',
-        };
+        return <String, dynamic>{'role': 'admin'};
       }
-      return <String, dynamic>{
-        'role': 'client',
-      };
+      return <String, dynamic>{'role': 'client'};
     }
   }
 
@@ -342,7 +334,14 @@ class _AuthRouterState extends State<AuthRouter> {
           _recoveringFromRoleLookupFailure = false;
           _announcedSignupConfirmation = false;
           _showedUnconfirmedSessionWarning = false;
-          return const LoginScreen();
+          return GuestBrowseScreen(
+            onLoginTapped: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+          );
         }
 
         _ensureRoleFuture(session.user.id);
@@ -357,7 +356,7 @@ class _AuthRouterState extends State<AuthRouter> {
                   child: BrandedLoadingIndicator(
                     size: 86,
                     logoSize: 42,
-                    label: 'Loading your Fresh Market account...',
+                    label: 'Loading your PAFLY account...',
                   ),
                 ),
               );

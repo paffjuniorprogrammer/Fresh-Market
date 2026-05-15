@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/rendering.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,7 @@ import 'package:potato_app/services/notification_service.dart';
 import 'package:potato_app/utils/app_ui.dart';
 import 'package:potato_app/utils/constants.dart';
 import 'package:potato_app/utils/supabase_errors.dart';
+import 'package:potato_app/services/pwa_service.dart';
 import 'package:potato_app/models/business_profile.dart';
 import 'package:potato_app/models/product.dart';
 import 'package:potato_app/models/category.dart';
@@ -140,7 +142,7 @@ class _ClientDashboardState extends State<ClientDashboard> {
           child: BrandedLoadingIndicator(
             size: 88,
             logoSize: 44,
-            label: 'Loading your Fresh Market dashboard...',
+            label: 'Loading your PAFLY dashboard...',
           ),
         ),
       );
@@ -156,79 +158,128 @@ class _ClientDashboardState extends State<ClientDashboard> {
       ),
     ];
 
-    return Scaffold(
-      extendBody: true,
-      body: NotificationListener<ScrollNotification>(
-        onNotification: _handleScrollNotification,
-        child: tabs[_currentIndex],
-      ),
-      bottomNavigationBar: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 220),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        child: _showBottomNav
-            ? SafeArea(
-                key: const ValueKey('bottom_nav_visible'),
-                minimum: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: NavigationBarTheme(
-                    data: NavigationBarThemeData(
-                      height: 76,
-                      backgroundColor: Colors.white.withValues(alpha: 0.96),
-                      indicatorColor: const Color(0x1F3B8B3F),
-                      elevation: 10,
-                      labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                        final selected = states.contains(WidgetState.selected);
-                        return TextStyle(
-                          fontSize: 12,
-                          fontWeight: selected
-                              ? FontWeight.w800
-                              : FontWeight.w600,
-                          color: selected
-                              ? AppUi.primary
-                              : Colors.grey.shade600,
-                        );
-                      }),
-                      iconTheme: WidgetStateProperty.resolveWith((states) {
-                        final selected = states.contains(WidgetState.selected);
-                        return IconThemeData(
-                          color: selected
-                              ? AppUi.primary
-                              : Colors.grey.shade500,
-                          size: 24,
-                        );
-                      }),
-                    ),
-                    child: NavigationBar(
-                      selectedIndex: _currentIndex,
-                      onDestinationSelected: (v) => setState(() {
-                        _currentIndex = v;
-                        _showBottomNav = true;
-                      }),
-                      destinations: const [
-                        NavigationDestination(
-                          icon: Icon(Icons.home_outlined),
-                          selectedIcon: Icon(Icons.home_rounded),
-                          label: 'Home',
-                        ),
-                        NavigationDestination(
-                          icon: Icon(Icons.receipt_long_outlined),
-                          selectedIcon: Icon(Icons.receipt_long_rounded),
-                          label: 'Orders',
-                        ),
-                        NavigationDestination(
-                          icon: Icon(Icons.person_outline_rounded),
-                          selectedIcon: Icon(Icons.person_rounded),
-                          label: 'Account',
-                        ),
-                      ],
-                    ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 800;
+
+        return Scaffold(
+          extendBody: true,
+          body: Row(
+            children: [
+              if (isDesktop)
+                NavigationRail(
+                  selectedIndex: _currentIndex,
+                  onDestinationSelected: (v) => setState(() {
+                    _currentIndex = v;
+                  }),
+                  labelType: NavigationRailLabelType.all,
+                  backgroundColor: Colors.white,
+                  indicatorColor: const Color(0x1F3B8B3F),
+                  selectedIconTheme: const IconThemeData(color: AppUi.primary),
+                  selectedLabelTextStyle: const TextStyle(
+                    color: AppUi.primary,
+                    fontWeight: FontWeight.w800,
                   ),
+                  unselectedLabelTextStyle: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  leading: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Image.asset('assets/logo.png', height: 48),
+                  ),
+                  destinations: const [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.home_outlined),
+                      selectedIcon: Icon(Icons.home_rounded),
+                      label: Text('Home'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.receipt_long_outlined),
+                      selectedIcon: Icon(Icons.receipt_long_rounded),
+                      label: Text('Orders'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.person_outline_rounded),
+                      selectedIcon: Icon(Icons.person_rounded),
+                      label: Text('Account'),
+                    ),
+                  ],
                 ),
-              )
-            : const SizedBox.shrink(key: ValueKey('bottom_nav_hidden')),
-      ),
+              if (isDesktop) const VerticalDivider(thickness: 1, width: 1),
+              Expanded(
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: _handleScrollNotification,
+                  child: tabs[_currentIndex],
+                ),
+              ),
+            ],
+          ),
+          bottomNavigationBar: !isDesktop
+              ? AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: _showBottomNav
+                      ? SafeArea(
+                          key: const ValueKey('bottom_nav_visible'),
+                          minimum: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: NavigationBarTheme(
+                              data: NavigationBarThemeData(
+                                height: 76,
+                                backgroundColor: Colors.white.withValues(alpha: 0.96),
+                                indicatorColor: const Color(0x1F3B8B3F),
+                                elevation: 10,
+                                labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                                  final selected = states.contains(WidgetState.selected);
+                                  return TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                                    color: selected ? AppUi.primary : Colors.grey.shade600,
+                                  );
+                                }),
+                                iconTheme: WidgetStateProperty.resolveWith((states) {
+                                  final selected = states.contains(WidgetState.selected);
+                                  return IconThemeData(
+                                    color: selected ? AppUi.primary : Colors.grey.shade500,
+                                    size: 24,
+                                  );
+                                }),
+                              ),
+                              child: NavigationBar(
+                                selectedIndex: _currentIndex,
+                                onDestinationSelected: (v) => setState(() {
+                                  _currentIndex = v;
+                                  _showBottomNav = true;
+                                }),
+                                destinations: const [
+                                  NavigationDestination(
+                                    icon: Icon(Icons.home_outlined),
+                                    selectedIcon: Icon(Icons.home_rounded),
+                                    label: 'Home',
+                                  ),
+                                  NavigationDestination(
+                                    icon: Icon(Icons.receipt_long_outlined),
+                                    selectedIcon: Icon(Icons.receipt_long_rounded),
+                                    label: 'Orders',
+                                  ),
+                                  NavigationDestination(
+                                    icon: Icon(Icons.person_outline_rounded),
+                                    selectedIcon: Icon(Icons.person_rounded),
+                                    label: 'Account',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(key: ValueKey('bottom_nav_hidden')),
+                )
+              : null,
+        );
+      },
     );
   }
 }
@@ -312,9 +363,9 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
           .toList();
       if (_selectedShopId == null && _shops.isNotEmpty) {
         final freshMarket = _shops.cast<Shop?>().firstWhere(
-              (shop) => shop!.name.trim().toLowerCase() == 'fresh market',
-              orElse: () => _shops.first,
-            );
+          (shop) => shop!.name.trim().toLowerCase() == 'pafly',
+          orElse: () => _shops.first,
+        );
         _selectedShopId = freshMarket?.id;
       }
       _categories = (responses[1] as List<dynamic>)
@@ -484,9 +535,9 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
     double total = 0;
     for (final entry in _cart.entries) {
       final product = products.cast<Product?>().firstWhere(
-            (item) => item?.id == entry.key,
-            orElse: () => null,
-          );
+        (item) => item?.id == entry.key,
+        orElse: () => null,
+      );
       if (product != null) {
         total += product.effectivePriceFor(entry.value) * entry.value;
       }
@@ -496,7 +547,7 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
 
   int _cartItemCount() => _cart.length;
 
-  Future<bool> _placeOrders({
+  Future<int?> _placeOrders({
     required String paymentMethod,
     required double deliveryFee,
     required double totalPrice,
@@ -547,7 +598,7 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
       }
 
       if (items.isEmpty) {
-        return false;
+        return null;
       }
 
       final createdOrderId = await Supabase.instance.client
@@ -583,7 +634,7 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
         );
       }
 
-      if (!mounted) return true;
+      if (!mounted) return orderId;
       setState(() => _cart.clear());
       unawaited(_clearCartDraft());
 
@@ -604,7 +655,7 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-      return true;
+      return orderId;
     } on TimeoutException {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -615,8 +666,12 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
           ),
         );
       }
-      return false;
+      return null;
     } catch (e) {
+      if (loadingDialogOpen && mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        loadingDialogOpen = false;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -626,7 +681,7 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
           ),
         );
       }
-      return false;
+      return null;
     } finally {
       if (loadingDialogOpen && navigator.canPop()) {
         navigator.pop();
@@ -665,69 +720,99 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
   void _showCheckoutSheet(List<Product> products) {
     if (_cart.isEmpty) return;
     final selectedShop = _selectedShop;
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
 
-    showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-        ),
-        child: FractionallySizedBox(
-          heightFactor: 0.88,
-          child: DecoratedBox(
-            decoration: const BoxDecoration(
-              color: Color(0xFFF7F6F3),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    Widget buildSheet(BuildContext ctx) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.88,
+              maxWidth: isDesktop ? 500 : double.infinity,
             ),
-            child: CartCheckoutSheet(
-              cart: _cart,
-              products: products,
-              selectedShop: selectedShop,
-              totalCost: _cartTotal(products),
-              liveLocationService: LiveLocationService.instance,
-              onSaveDraft: _saveCartDraft,
-              onIncrease: (product) {
-                _updateCart(product.id, 1, product.quantity);
-              },
-              onDecrease: (product) {
-                _updateCart(product.id, -1, product.quantity);
-              },
-              onSubmit: (paymentMethod, deliveryFee, finalTotal) async {
-                if (paymentMethod == 'MoMo Pay') {
-                  final launched = await _openMomoDialer(
-                    finalTotal,
-                    merchantCodeOverride: selectedShop?.momoPayMerchantCode,
-                  );
-                  if (!launched) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Could not open the MoMo dial screen on this device.',
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F6F3),
+                borderRadius: isDesktop
+                    ? BorderRadius.circular(32)
+                    : const BorderRadius.vertical(top: Radius.circular(32)),
+                boxShadow: isDesktop
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 24,
+                          offset: const Offset(0, 12),
+                        )
+                      ]
+                    : null,
+              ),
+              child: CartCheckoutSheet(
+                cart: _cart,
+                products: products,
+                selectedShop: selectedShop,
+                totalCost: _cartTotal(products),
+                liveLocationService: LiveLocationService.instance,
+                onSaveDraft: _saveCartDraft,
+                onIncrease: (product) {
+                  _updateCart(product.id, 1, product.quantity);
+                },
+                onDecrease: (product) {
+                  _updateCart(product.id, -1, product.quantity);
+                },
+                onSubmit: (paymentMethod, deliveryFee, finalTotal) async {
+                  if (paymentMethod == 'MoMo Pay') {
+                    final launched = await _openMomoDialer(
+                      finalTotal,
+                      merchantCodeOverride: selectedShop?.momoPayMerchantCode,
+                    );
+                    if (!launched) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Could not open the MoMo dial screen on this device.',
+                            ),
+                            behavior: SnackBarBehavior.floating,
                           ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                        );
+                      }
+                      return null;
                     }
-                    return false;
                   }
-                }
 
-                return _placeOrders(
-                  paymentMethod: paymentMethod,
-                  deliveryFee: deliveryFee,
-                  totalPrice: finalTotal,
-                  products: products,
-                );
-              },
+                  final orderId = await _placeOrders(
+                    paymentMethod: paymentMethod,
+                    deliveryFee: deliveryFee,
+                    totalPrice: finalTotal,
+                    products: products,
+                  );
+                  return orderId;
+                },
+              ),
             ),
           ),
+        );
+
+    if (isDesktop) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => Center(
+          child: Material(
+            color: Colors.transparent,
+            child: buildSheet(dialogContext),
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        builder: (sheetContext) => buildSheet(sheetContext),
+      );
+    }
   }
 
   Promotion? get _currentPromotion {
@@ -782,8 +867,8 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
 
   String _deliveryLocationLabel(Position? position) {
     final state = LiveLocationService.instance.trackingState.value;
-    final readable =
-        LiveLocationService.instance.currentReadableLocation.value?.trim();
+    final readable = LiveLocationService.instance.currentReadableLocation.value
+        ?.trim();
 
     if (readable != null && readable.isNotEmpty) {
       return readable;
@@ -806,11 +891,11 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
   }
 
   String _categoryNameForProduct(Product product) {
-    if (product.categoryId == null) return 'Fresh Market';
+    if (product.categoryId == null) return 'PAFLY';
     for (final category in _categories) {
       if (category.id == product.categoryId) return category.name;
     }
-    return 'Fresh Market';
+    return 'PAFLY';
   }
 
   Shop? get _selectedShop {
@@ -882,6 +967,10 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isDesktop = width >= 800;
+    final sidePadding = isDesktop ? (width - 1100).clamp(0.0, width) / 2 : 0.0;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7EF),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -921,6 +1010,57 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
               ),
               CustomScrollView(
                 slivers: [
+                  if (kIsWeb)
+                    SliverToBoxAdapter(
+                      child: StreamBuilder<bool>(
+                        stream: PwaService.instance.installableStream,
+                        initialData: PwaService.instance.isInstallable,
+                        builder: (context, snapshot) {
+                          if (snapshot.data != true) return const SizedBox.shrink();
+                          return Container(
+                            margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppUi.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppUi.primary.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.install_mobile_rounded, color: AppUi.primary),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Install PAFLY App',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Install on your home screen for quick access.',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => PwaService.instance.triggerInstall(),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppUi.primary,
+                                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  child: const Text('INSTALL'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   SliverToBoxAdapter(
                     child: SafeArea(
                       bottom: false,
@@ -963,7 +1103,7 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        selectedShop?.name ?? 'Fresh Market',
+                                        selectedShop?.name ?? 'PAFLY',
                                         style: const TextStyle(
                                           fontSize: 34,
                                           fontWeight: FontWeight.w900,
@@ -1107,83 +1247,80 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
                                         valueListenable: LiveLocationService
                                             .instance
                                             .currentReadableLocation,
-                                        builder:
-                                            (context, readableLocation, _) =>
-                                                InkWell(
-                                                  onTap: () {
-                                                    LiveLocationService.instance.startTracking(
-                                                      userId: widget.userProfile['id'] ?? '',
-                                                      customerName: widget.userProfile['name'] ?? '',
-                                                      phone: widget.userProfile['phone'] ?? '',
-                                                      locationLabel: widget.userProfile['location'] ?? '',
-                                                    );
-                                                  },
-                                                  borderRadius:
-                                                      const BorderRadius.vertical(
-                                                        top:
-                                                            Radius.circular(26),
+                                        builder: (context, readableLocation, _) => InkWell(
+                                          onTap: () {
+                                            LiveLocationService.instance.startTracking(
+                                              userId:
+                                                  widget.userProfile['id'] ??
+                                                  '',
+                                              customerName:
+                                                  widget.userProfile['name'] ??
+                                                  '',
+                                              phone:
+                                                  widget.userProfile['phone'] ??
+                                                  '',
+                                              locationLabel:
+                                                  widget
+                                                      .userProfile['location'] ??
+                                                  '',
+                                            );
+                                          },
+                                          borderRadius:
+                                              const BorderRadius.vertical(
+                                                top: Radius.circular(26),
+                                              ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              16,
+                                              14,
+                                              16,
+                                              10,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.all(
+                                                    6,
+                                                  ),
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                        color: Color(
+                                                          0xFFEAF5E3,
+                                                        ),
+                                                        shape: BoxShape.circle,
                                                       ),
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.fromLTRB(
-                                                          16,
-                                                          14,
-                                                          16,
-                                                          10,
-                                                        ),
-                                                    child: Row(
-                                                      children: [
-                                                        Container(
-                                                          padding:
-                                                              const EdgeInsets.all(
-                                                                6,
-                                                              ),
-                                                          decoration:
-                                                              const BoxDecoration(
-                                                                color: Color(
-                                                                  0xFFEAF5E3,
-                                                                ),
-                                                                shape:
-                                                                    BoxShape.circle,
-                                                              ),
-                                                          child: const Icon(
-                                                            Icons.location_on,
-                                                            color:
-                                                                AppUi.primary,
-                                                            size: 14,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 10,
-                                                        ),
-                                                        Expanded(
-                                                          child: Text(
-                                                            _deliveryLocationLabel(
-                                                              position,
-                                                            ),
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow.ellipsis,
-                                                            style: const TextStyle(
-                                                              fontSize: 13,
-                                                              fontWeight:
-                                                                  FontWeight.w700,
-                                                              color: Color(
-                                                                0xFF415144,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        Icon(
-                                                          Icons.chevron_right,
-                                                          size: 18,
-                                                          color: Colors.grey
-                                                              .shade400,
-                                                        ),
-                                                      ],
+                                                  child: const Icon(
+                                                    Icons.location_on,
+                                                    color: AppUi.primary,
+                                                    size: 14,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Expanded(
+                                                  child: Text(
+                                                    _deliveryLocationLabel(
+                                                      position,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Color(0xFF415144),
                                                     ),
                                                   ),
                                                 ),
+                                                Icon(
+                                                  Icons.chevron_right,
+                                                  size: 18,
+                                                  color: Colors.grey.shade400,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                       );
                                     },
                                   ),
@@ -1201,10 +1338,9 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
                                     ),
                                     child: TextField(
                                       controller: _searchController,
-                                      onChanged:
-                                          (value) => setState(() {
-                                            _searchQuery = value;
-                                          }),
+                                      onChanged: (value) => setState(() {
+                                        _searchQuery = value;
+                                      }),
                                       textInputAction: TextInputAction.search,
                                       style: const TextStyle(
                                         fontSize: 15,
@@ -1230,17 +1366,16 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
                                         suffixIcon: _activeSearchQuery.isEmpty
                                             ? null
                                             : IconButton(
-                                              onPressed:
-                                                  () => setState(() {
-                                                    _searchController.clear();
-                                                    _searchQuery = '';
-                                                  }),
-                                              icon: const Icon(
-                                                Icons.close_rounded,
-                                                color: Color(0xFF6F7F72),
-                                                size: 20,
+                                                onPressed: () => setState(() {
+                                                  _searchController.clear();
+                                                  _searchQuery = '';
+                                                }),
+                                                icon: const Icon(
+                                                  Icons.close_rounded,
+                                                  color: Color(0xFF6F7F72),
+                                                  size: 20,
+                                                ),
                                               ),
-                                            ),
                                       ),
                                     ),
                                   ),
@@ -1387,230 +1522,161 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
                               ),
                             ],
                             const SizedBox(height: 18),
-                            Row(
-                              children: [
-                                const Text(
-                                  'Popular Deals',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF26352A),
-                                    letterSpacing: -0.4,
-                                  ),
-                                ),
-                                const Spacer(),
-                                TextButton(
-                                  onPressed: () =>
-                                      setState(() => _selectedCategory = null),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: AppUi.primary,
-                                    padding: EdgeInsets.zero,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: const Text(
-                                    'See All',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  if (snapshot.hasError)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 18,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              const Icon(
-                                Icons.cloud_off_rounded,
-                                color: AppUi.primary,
-                                size: 38,
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'We could not load fresh deals right now.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
+                    if (snapshot.hasError)
+                      SliverPadding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isDesktop ? sidePadding : 20,
+                        ),
+                        sliver: SliverToBoxAdapter(
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 8),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Please refresh the page or try again later.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  height: 1.4,
+                              ],
+                            ),
+                            child: const Column(
+                              children: [
+                                Icon(Icons.cloud_off_rounded, color: AppUi.primary, size: 38),
+                                SizedBox(height: 12),
+                                Text(
+                                  'We could not load fresh deals right now.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                                 ),
-                              ),
-                            ],
+                                SizedBox(height: 6),
+                                Text(
+                                  'Please refresh the page or try again later.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.grey, height: 1.4),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                  else if (snapshot.connectionState ==
-                          ConnectionState.waiting &&
-                      snapshot.data == null)
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                              mainAxisExtent: 260,
-                            ),
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          return Shimmer.fromColors(
-                            baseColor: Colors.white,
-                            highlightColor: Colors.grey.shade50,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                            ),
-                          );
-                        }, childCount: 6),
-                      ),
-                    )
-                  else if (products.isEmpty)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          20,
-                          4,
-                          20,
-                          _cart.isNotEmpty ? 120 : 40,
+                      )
+                    else if (snapshot.connectionState == ConnectionState.waiting && snapshot.data == null)
+                      SliverPadding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isDesktop ? sidePadding : 18,
                         ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 28,
+                        sliver: SliverGrid(
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            mainAxisExtent: 260,
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(28),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 18,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                height: 72,
-                                width: 72,
-                                padding: const EdgeInsets.all(10),
+                          delegate: SliverChildBuilderDelegate((context, index) {
+                            return Shimmer.fromColors(
+                              baseColor: Colors.white,
+                              highlightColor: Colors.grey.shade50,
+                              child: Container(
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF2F8EC),
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                child: Image.asset('assets/logo.png'),
-                              ),
-                              const SizedBox(height: 18),
-                              Text(
-                                _activeSearchQuery.isNotEmpty
-                                    ? 'No products matched "$_activeSearchQuery".'
-                                    : 'No deals available in this category yet.',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(24),
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _activeSearchQuery.isNotEmpty
-                                    ? 'Try a different product name, category, or switch to another shop.'
-                                    : 'Fresh Market will show matching products here as soon as they are available.',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  height: 1.4,
+                            );
+                          }, childCount: 6),
+                        ),
+                      )
+                    else if (products.isEmpty)
+                      SliverPadding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isDesktop ? sidePadding : 20,
+                        ),
+                        sliver: SliverToBoxAdapter(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 8),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  height: 72,
+                                  width: 72,
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF2F8EC),
+                                    borderRadius: BorderRadius.circular(22),
+                                  ),
+                                  child: Image.asset('assets/logo.png'),
+                                ),
+                                const SizedBox(height: 18),
+                                Text(
+                                  _activeSearchQuery.isNotEmpty
+                                      ? 'No products matched "$_activeSearchQuery".'
+                                      : 'No deals available in this category yet.',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _activeSearchQuery.isNotEmpty
+                                      ? 'Try a different product name, category, or switch to another shop.'
+                                      : 'PAFLY will show matching products here as soon as they are available.',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.grey, height: 1.4),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                  else
-                    SliverLayoutBuilder(
-                      builder: (context, constraints) {
-                        final cardHeight = constraints.crossAxisExtent < 460
-                            ? 262.0
-                            : 248.0;
-                        return SliverPadding(
-                          padding: EdgeInsets.fromLTRB(18, 0, 18, 28),
-                          sliver: SliverGrid(
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 9,
-                                  mainAxisSpacing: 9,
-                                  mainAxisExtent: cardHeight,
-                                ),
-                            delegate: SliverChildBuilderDelegate((
-                              context,
-                              index,
-                            ) {
-                              final product = products[index];
-                              final qtyInCart = _cart[product.id] ?? 0.0;
-                              return FreshMarketProductCard(
-                                product: product,
-                                qtyInCart: qtyInCart,
-                                badgeText: _productBadgeText(product),
-                                onAdd: () => _updateCart(
-                                  product.id,
-                                  1,
-                                  product.quantity,
-                                ),
-                                onRemove: () => _updateCart(
-                                  product.id,
-                                  -1,
-                                  product.quantity,
-                                ),
-                              );
-                            }, childCount: products.length),
+                      )
+                    else
+                      SliverPadding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isDesktop ? sidePadding : 18,
+                        ),
+                        sliver: SliverGrid(
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 260,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            mainAxisExtent: 262,
                           ),
-                        );
-                      },
-                    ),
-                ],
-              ),
-              // Removed: Floating Cart summary that overlaps with Bottom Nav
-            ],
-          );
-        },
-      ),
-    );
+                          delegate: SliverChildBuilderDelegate((context, index) {
+                            final product = products[index];
+                            final qtyInCart = _cart[product.id] ?? 0.0;
+                            return FreshMarketProductCard(
+                              product: product,
+                              qtyInCart: qtyInCart,
+                              badgeText: _productBadgeText(product),
+                              onAdd: () => _updateCart(product.id, 1, product.quantity),
+                              onRemove: () => _updateCart(product.id, -1, product.quantity),
+                            );
+                          }, childCount: products.length),
+                        ),
+                      ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      );
   }
 }
 
@@ -1623,7 +1689,7 @@ class CartCheckoutSheet extends StatefulWidget {
   final Future<void> Function() onSaveDraft;
   final ValueChanged<Product> onIncrease;
   final ValueChanged<Product> onDecrease;
-  final Future<bool> Function(
+  final Future<int?> Function(
     String paymentMethod,
     double deliveryFee,
     double finalTotal,
@@ -1653,21 +1719,26 @@ class _CartCheckoutSheetState extends State<CartCheckoutSheet> {
   double? _distanceKm;
   double _deliveryFee = 0;
 
+  final _promoCtrl = TextEditingController();
+  Map<String, dynamic>? _appliedPromo;
+  String? _promoError;
+  bool _isVerifyingPromo = false;
+
   BusinessProfile get _checkoutProfile {
     final shop = widget.selectedShop;
-    final globalProfile = widget.liveLocationService.businessProfile.value ??
+    final globalProfile =
+        widget.liveLocationService.businessProfile.value ??
         BusinessProfile.fallback();
 
-    // If no specific shop or it's the main 'Fresh Market' shop, 
+    // If no specific shop or it's the main 'PAFLY' shop,
     // use the Global Business Profile (which is updated in real-time by Admin).
-    if (shop == null || shop.name.trim().toLowerCase() == 'fresh market') {
+    if (shop == null || shop.name.trim().toLowerCase() == 'pafly') {
       return globalProfile;
     }
 
     return BusinessProfile(
       id: 1,
-      businessName:
-          shop.name.trim().isEmpty
+      businessName: shop.name.trim().isEmpty
           ? AppConstants.defaultBusinessName
           : shop.name.trim(),
       email: '',
@@ -1688,7 +1759,9 @@ class _CartCheckoutSheetState extends State<CartCheckoutSheet> {
   @override
   void initState() {
     super.initState();
-    widget.liveLocationService.businessProfile.addListener(_loadDeliveryEstimate);
+    widget.liveLocationService.businessProfile.addListener(
+      _loadDeliveryEstimate,
+    );
     _deliveryFee = calculateDeliveryFee(
       distanceKm: 0,
       orderAmount: _subtotal,
@@ -1702,7 +1775,86 @@ class _CartCheckoutSheetState extends State<CartCheckoutSheet> {
     widget.liveLocationService.businessProfile.removeListener(
       _loadDeliveryEstimate,
     );
+    _promoCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _verifyPromo() async {
+    final code = _promoCtrl.text.trim().toUpperCase();
+    if (code.isEmpty) return;
+
+    setState(() {
+      _isVerifyingPromo = true;
+      _promoError = null;
+    });
+
+    try {
+      final now = DateTime.now().toUtc().toIso8601String();
+      final response = await Supabase.instance.client
+          .from('promo_codes')
+          .select()
+          .eq('code', code)
+          .eq('is_active', true)
+          .or('expiry_date.is.null,expiry_date.gt.$now')
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      if (response == null) {
+        setState(() {
+          _promoError = 'Invalid or expired code';
+          _appliedPromo = null;
+          _isVerifyingPromo = false;
+        });
+        return;
+      }
+
+      final maxUses = response['max_uses_per_user'] as int?;
+      if (maxUses != null) {
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) {
+          final usage = await Supabase.instance.client
+              .from('promo_code_usage')
+              .select('id')
+              .eq('promo_code_id', response['id'])
+              .eq('user_id', userId);
+          if ((usage as List).length >= maxUses) {
+            setState(() {
+              _promoError = 'Usage limit reached';
+              _appliedPromo = null;
+              _isVerifyingPromo = false;
+            });
+            return;
+          }
+        }
+      }
+
+      // Check minimum purchase amount
+      final minPurchase = (response['min_purchase_amount'] as num?)?.toDouble() ?? 0;
+      if (minPurchase > 0 && _subtotal < minPurchase) {
+        setState(() {
+          _promoError = 'Min purchase of ${minPurchase.toStringAsFixed(0)} Frw required';
+          _appliedPromo = null;
+          _isVerifyingPromo = false;
+        });
+        return;
+      }
+
+      setState(() {
+        _appliedPromo = response;
+        _promoError = null;
+        _isVerifyingPromo = false;
+      });
+      if (!mounted) return;
+      FocusScope.of(context).unfocus();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _promoError = 'Error verifying code';
+        _appliedPromo = null;
+        _isVerifyingPromo = false;
+      });
+    }
   }
 
   List<_CartSheetLineItem> get _items {
@@ -1722,7 +1874,7 @@ class _CartCheckoutSheetState extends State<CartCheckoutSheet> {
 
   String _merchantLabel(Product product) {
     final label = product.name.trim();
-    return label.isEmpty ? 'Fresh Market' : label;
+    return label.isEmpty ? 'PAFLY' : label;
   }
 
   double _lineTotal(_CartSheetLineItem item) =>
@@ -1743,12 +1895,30 @@ class _CartCheckoutSheetState extends State<CartCheckoutSheet> {
     return total;
   }
 
-  double get _finalTotal => _subtotal + _deliveryFee;
+  double get _discountAmount {
+    if (_appliedPromo == null) return 0;
+    final type = _appliedPromo!['type'];
+    final value = _appliedPromo!['value'] as num? ?? 0;
+    
+    if (type == 'free_delivery') {
+      return _deliveryFee;
+    } else if (type == 'discount_fixed') {
+      return value.toDouble();
+    } else if (type == 'discount_percent') {
+      return _subtotal * (value.toDouble() / 100.0);
+    }
+    return 0;
+  }
+
+  double get _finalTotal {
+    final t = _subtotal + _deliveryFee - _discountAmount;
+    return t < 0 ? 0 : t;
+  }
 
   Future<void> _loadDeliveryEstimate() async {
     if (!mounted) return;
-    
-    // If we already have a distance, we can quickly re-calculate the fee 
+
+    // If we already have a distance, we can quickly re-calculate the fee
     // without doing another GPS lookup if the profile changes.
     if (_distanceKm != null) {
       final nextDeliveryFee = calculateDeliveryFee(
@@ -1765,20 +1935,19 @@ class _CartCheckoutSheetState extends State<CartCheckoutSheet> {
     }
 
     final profile = _checkoutProfile;
-    final distanceKm =
-        profile.latitude != null && profile.longitude != null
+    final distanceKm = profile.latitude != null && profile.longitude != null
         ? await widget.liveLocationService.getDistanceToCoordinates(
             latitude: profile.latitude!,
             longitude: profile.longitude!,
           )
         : await widget.liveLocationService.getDistanceToStoreKm();
-        
+
     final nextDeliveryFee = calculateDeliveryFee(
       distanceKm: distanceKm ?? 0,
       orderAmount: _subtotal,
       profile: profile,
     );
-    
+
     if (!mounted) return;
     setState(() {
       _distanceKm = distanceKm;
@@ -1838,15 +2007,30 @@ class _CartCheckoutSheetState extends State<CartCheckoutSheet> {
     if (paymentMethod == null) return;
 
     setState(() => _isSubmitting = true);
-    final success = await widget.onSubmit(
+    final orderId = await widget.onSubmit(
       paymentMethod,
       _deliveryFee,
       _finalTotal,
     );
+    
+    if (orderId != null && _appliedPromo != null) {
+      try {
+        await Supabase.instance.client.rpc(
+          'apply_promo_code_to_order',
+          params: {
+            'p_order_id': orderId,
+            'p_promo_code_id': _appliedPromo!['id'],
+          },
+        );
+      } catch (e) {
+        // Fail silently or show warning if promo couldn't apply
+      }
+    }
+
     if (!mounted) return;
 
     setState(() => _isSubmitting = false);
-    if (success) {
+    if (orderId != null) {
       Navigator.pop(context);
     }
   }
@@ -1985,8 +2169,8 @@ class _CartCheckoutSheetState extends State<CartCheckoutSheet> {
                               _distanceKm == null
                                   ? 'Using base delivery fee (${_checkoutProfile.deliveryBaseFee.toStringAsFixed(0)} Frw) because GPS distance is unavailable.'
                                   : (_distanceKm! <=
-                                          _checkoutProfile
-                                              .deliveryDistanceThresholdKm)
+                                        _checkoutProfile
+                                            .deliveryDistanceThresholdKm)
                                   ? 'Within ${_checkoutProfile.deliveryDistanceThresholdKm.toStringAsFixed(0)}km: Base fee of ${_checkoutProfile.deliveryBaseFee.toStringAsFixed(0)} Frw applied.'
                                   : 'Distance: ${_distanceKm!.toStringAsFixed(1)} km from $businessName (Base + Extra Km applied).',
                               style: TextStyle(
@@ -2072,6 +2256,14 @@ class _CartCheckoutSheetState extends State<CartCheckoutSheet> {
                           );
                         },
                       ),
+                      if (_discountAmount > 0) ...[
+                        const SizedBox(height: 8),
+                        _CheckoutSummaryRow(
+                          label: 'Discount (${_appliedPromo!['code']})',
+                          value: '-${_discountAmount.toStringAsFixed(0)} Frw',
+                          valueColor: AppUi.primary,
+                        ),
+                      ],
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 10),
                         child: Divider(height: 1),
@@ -2086,58 +2278,79 @@ class _CartCheckoutSheetState extends State<CartCheckoutSheet> {
                 ),
                 const SizedBox(height: 14),
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEAF6E6),
-                          borderRadius: BorderRadius.circular(11),
-                        ),
-                        child: const Icon(
-                          Icons.info_outline_rounded,
-                          color: AppUi.primary,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Payment confirmation',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _promoCtrl,
+                              decoration: InputDecoration(
+                                hintText: 'Enter Promo Code',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade400,
+                                  fontSize: 14,
+                                ),
+                                border: InputBorder.none,
+                                icon: const Icon(
+                                  Icons.local_offer_outlined,
+                                  color: AppUi.primary,
+                                ),
                               ),
+                              textCapitalization: TextCapitalization.characters,
+                              onSubmitted: (_) => _verifyPromo(),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'When you tap checkout, we will ask for Cash or MoMo Pay. Both options send the order as unpaid until admin confirms payment.',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 11,
-                                height: 1.25,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                          TextButton(
+                            onPressed: _isVerifyingPromo ? null : _verifyPromo,
+                            child: _isVerifyingPromo
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Apply',
+                                    style: TextStyle(
+                                      color: AppUi.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ],
                       ),
+                      if (_promoError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 4),
+                          child: Text(
+                            _promoError!,
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      if (_appliedPromo != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 4),
+                          child: Text(
+                            'Promo applied: ${_appliedPromo!['code']}',
+                            style: const TextStyle(
+                              color: AppUi.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -2434,11 +2647,13 @@ class _CheckoutSummaryRow extends StatelessWidget {
   final String label;
   final String value;
   final bool isEmphasized;
+  final Color? valueColor;
 
   const _CheckoutSummaryRow({
     required this.label,
     required this.value,
     this.isEmphasized = false,
+    this.valueColor,
   });
 
   @override
@@ -2459,7 +2674,10 @@ class _CheckoutSummaryRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: style),
-        Text(value, style: style),
+        Text(
+          value,
+          style: valueColor != null ? style.copyWith(color: valueColor) : style,
+        ),
       ],
     );
   }
@@ -2863,7 +3081,14 @@ class _ClientOrdersTabState extends State<_ClientOrdersTab> {
                           value: '${o.deliveryFee.toStringAsFixed(0)} Frw',
                         ),
                       ],
-                      const SizedBox(height: 8),
+                      if (o.discountAmount > 0) ...[
+                        const SizedBox(height: 8),
+                        _OrderBreakdownRow(
+                          label: o.discountAmount == o.deliveryFee ? 'Promo: Free Delivery' : 'Promo Discount',
+                          value: '-${o.discountAmount.toStringAsFixed(0)} Frw',
+                          isDiscount: true,
+                        ),
+                      ],                      const SizedBox(height: 8),
                       _OrderBreakdownRow(
                         label: 'Total',
                         value: '${o.totalPrice.toStringAsFixed(0)} Frw',
@@ -2956,18 +3181,25 @@ class _OrderBreakdownRow extends StatelessWidget {
   final String label;
   final String value;
   final bool isStrong;
+  final bool isDiscount;
 
   const _OrderBreakdownRow({
     required this.label,
     required this.value,
     this.isStrong = false,
+    this.isDiscount = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final color = isDiscount
+        ? Colors.green.shade700
+        : isStrong
+        ? AppUi.dark
+        : Colors.grey.shade700;
     final style = TextStyle(
-      color: isStrong ? AppUi.dark : Colors.grey.shade700,
-      fontWeight: isStrong ? FontWeight.w800 : FontWeight.w600,
+      color: color,
+      fontWeight: isStrong || isDiscount ? FontWeight.w800 : FontWeight.w600,
       fontSize: isStrong ? 15 : 13,
     );
 
@@ -3003,11 +3235,50 @@ class _ClientProfileTab extends StatefulWidget {
 class _ClientProfileTabState extends State<_ClientProfileTab> {
   String _paymentMethod = 'MoMo Pay';
   bool _loadingPaymentMethod = true;
-
   @override
   void initState() {
     super.initState();
     _loadPaymentMethod();
+  }
+
+  Future<void> _launchWhatsAppHelp() async {
+    final profile = await LiveLocationService.instance.loadBusinessProfile();
+    final phone = profile.phone.trim();
+    if (phone.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Business contact number is not available yet.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    final cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    final whatsappUrl = Uri.parse(
+      'https://wa.me/$cleanPhone?text=Hello PAFLY Support, I need help with my account.',
+    );
+
+    try {
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch WhatsApp';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not open WhatsApp. Please contact us at $phone',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadPaymentMethod() async {
@@ -3052,56 +3323,36 @@ class _ClientProfileTabState extends State<_ClientProfileTab> {
     }
   }
 
-  Future<void> _launchWhatsAppHelp() async {
-    final profile = await LiveLocationService.instance.loadBusinessProfile();
-    final phone = profile.phone.trim();
-    if (phone.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Business contact number is not available yet.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-
-    // Clean phone number (remove +, spaces, etc. but keep leading digits for international format)
-    final cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
-    final whatsappUrl = Uri.parse(
-      'https://wa.me/$cleanPhone?text=Hello Fresh Market Support, I need help with my account.',
-    );
-
-    try {
-      if (await canLaunchUrl(whatsappUrl)) {
-        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
-      } else {
-        throw 'Could not launch WhatsApp';
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text('Could not open WhatsApp. Please contact us at $phone'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
   void _showEditProfileSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _EditProfileSheet(
-        userProfile: widget.userProfile,
-        onProfileUpdated: widget.onProfileUpdated,
-      ),
-    );
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
+    
+    if (isDesktop) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Material(
+              color: Colors.transparent,
+              child: _EditProfileSheet(
+                userProfile: widget.userProfile,
+                onProfileUpdated: widget.onProfileUpdated,
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => _EditProfileSheet(
+          userProfile: widget.userProfile,
+          onProfileUpdated: widget.onProfileUpdated,
+        ),
+      );
+    }
   }
 
   void _showEmailUpgradeSheet() {
@@ -3109,232 +3360,274 @@ class _ClientProfileTabState extends State<_ClientProfileTab> {
         ? ''
         : _currentEmailLabel();
     final emailCtrl = TextEditingController(text: currentEmail);
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
 
-    showModalBottomSheet<String>(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (sheetContext) {
-            bool isSaving = false;
+    Widget buildUpgradeSheet(BuildContext sheetContext) {
+      bool isSaving = false;
 
-            return StatefulBuilder(
-              builder: (sheetContext, setSheetState) {
-                Future<void> saveEmail() async {
-                  final newEmail = emailCtrl.text.trim();
-                  if (newEmail.isEmpty || !newEmail.contains('@')) {
-                    ScaffoldMessenger.of(sheetContext).showSnackBar(
-                      const SnackBar(
-                        content: Text('Enter a valid email address.'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                    return;
-                  }
+      return StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          Future<void> saveEmail() async {
+            final newEmail = emailCtrl.text.trim();
+            if (newEmail.isEmpty || !newEmail.contains('@')) {
+              ScaffoldMessenger.of(sheetContext).showSnackBar(
+                const SnackBar(
+                  content: Text('Enter a valid email address.'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+              return;
+            }
 
-                  setSheetState(() => isSaving = true);
-                  try {
-                    await Supabase.instance.client.auth.updateUser(
-                      UserAttributes(email: newEmail),
-                    );
+            setSheetState(() => isSaving = true);
+            try {
+              await Supabase.instance.client.auth.updateUser(
+                UserAttributes(email: newEmail),
+              );
 
-                    if (sheetContext.mounted) {
-                      Navigator.pop(sheetContext, newEmail);
-                    }
-                  } on AuthException catch (e) {
-                    if (sheetContext.mounted) {
-                      ScaffoldMessenger.of(sheetContext).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            friendlyAccountIdentityErrorMessage(
-                              e,
-                              fallbackMessage: e.message,
-                            ),
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (sheetContext.mounted) {
-                      ScaffoldMessenger.of(sheetContext).showSnackBar(
-                        SnackBar(
-                          content: Text('Could not update email: $e'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  } finally {
-                    if (sheetContext.mounted) {
-                      setSheetState(() => isSaving = false);
-                    }
-                  }
-                }
-
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(28),
+              if (sheetContext.mounted) {
+                Navigator.pop(sheetContext, newEmail);
+              }
+            } on AuthException catch (e) {
+              if (sheetContext.mounted) {
+                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      friendlyAccountIdentityErrorMessage(
+                        e,
+                        fallbackMessage: e.message,
                       ),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 48,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        const Text(
-                          'Add Email Later',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Link an email to recover your password and sign in more easily.',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                        const SizedBox(height: 18),
-                        TextField(
-                          controller: emailCtrl,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            labelText: 'Email address',
-                            hintText: 'you@example.com',
-                            prefixIcon: const Icon(Icons.email_outlined),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          height: 54,
-                          child: ElevatedButton.icon(
-                            onPressed: isSaving ? null : saveEmail,
-                            icon: isSaving
-                                ? const SizedBox(
-                                    height: 18,
-                                    width: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.check_rounded),
-                            label: const Text(
-                              'Save Email',
-                              style: TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppUi.primary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    behavior: SnackBarBehavior.floating,
                   ),
                 );
-              },
-            );
-          },
-        )
-        .then((newEmail) {
-          if (!mounted || newEmail == null) {
-            return;
+              }
+            } catch (e) {
+              if (sheetContext.mounted) {
+                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                  SnackBar(
+                    content: Text('Could not update email: $e'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            } finally {
+              if (sheetContext.mounted) {
+                setSheetState(() => isSaving = false);
+              }
+            }
           }
 
-          widget.onProfileUpdated();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Email linked successfully. Use $newEmail for recovery.',
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: isDesktop 
+                    ? BorderRadius.circular(28) 
+                    : const BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              behavior: SnackBarBehavior.floating,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (!isDesktop)
+                    Center(
+                      child: Container(
+                        width: 48,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Add Email Later',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Link an email to recover your password and sign in more easily.',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: 'Email address',
+                      hintText: 'you@example.com',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 54,
+                    child: ElevatedButton.icon(
+                      onPressed: isSaving ? null : saveEmail,
+                      icon: isSaving
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.check_rounded),
+                      label: const Text(
+                        'Save Email',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppUi.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
-        })
-        .whenComplete(emailCtrl.dispose);
+        },
+      );
+    }
+
+    if (isDesktop) {
+      showDialog<String>(
+        context: context,
+        builder: (dialogContext) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Material(
+              color: Colors.transparent,
+              child: buildUpgradeSheet(dialogContext),
+            ),
+          ),
+        ),
+      ).then((newEmail) {
+        if (!mounted || newEmail == null) return;
+        _handleEmailUpdateSuccess(newEmail);
+      });
+    } else {
+      showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (sheetContext) => buildUpgradeSheet(sheetContext),
+      ).then((newEmail) {
+        if (!mounted || newEmail == null) return;
+        _handleEmailUpdateSuccess(newEmail);
+      });
+    }
   }
 
-  void _showPaymentMethodSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 48,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Payment Methods',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Choose how you usually pay for your orders.',
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 18),
-            ...['MoMo Pay', 'Cash'].map(
-              (method) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _PaymentMethodOption(
-                  title: method,
-                  subtitle: method == 'MoMo Pay'
-                      ? 'Mobile money payment'
-                      : 'Pay on delivery with cash',
-                  icon: method == 'MoMo Pay'
-                      ? Icons.phone_android_rounded
-                      : Icons.payments_outlined,
-                  isSelected: _paymentMethod == method,
-                  onTap: () async {
-                    await _savePaymentMethod(method);
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
+  void _handleEmailUpdateSuccess(String newEmail) {
+    widget.onProfileUpdated();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Email linked successfully. Use $newEmail for recovery.'),
+        behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+
+  void _showPaymentMethodSheet() {
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
+
+    Widget buildPaymentSheet(BuildContext ctx) => Container(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: isDesktop
+                ? BorderRadius.circular(28)
+                : const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!isDesktop)
+                Center(
+                  child: Container(
+                    width: 48,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 18),
+              const Text(
+                'Payment Methods',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Choose how you usually pay for your orders.',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 18),
+              ...['MoMo Pay', 'Cash'].map(
+                (method) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _PaymentMethodOption(
+                    title: method,
+                    subtitle: method == 'MoMo Pay'
+                        ? 'Mobile money payment'
+                        : 'Pay on delivery with cash',
+                    icon: method == 'MoMo Pay'
+                        ? Icons.phone_android_rounded
+                        : Icons.payments_outlined,
+                    isSelected: _paymentMethod == method,
+                    onTap: () async {
+                      await _savePaymentMethod(method);
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
+    if (isDesktop) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Material(
+              color: Colors.transparent,
+              child: buildPaymentSheet(dialogContext),
+            ),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) => buildPaymentSheet(context),
+      );
+    }
   }
 
   void _showComingSoon(String title) {
@@ -3357,115 +3650,129 @@ class _ClientProfileTabState extends State<_ClientProfileTab> {
 
   void _showLiveLocationSheet() {
     final service = LiveLocationService.instance;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ValueListenableBuilder<LiveLocationTrackingState>(
-        valueListenable: service.trackingState,
-        builder: (context, trackingState, _) {
-          final lastUpdated = trackingState.lastUpdatedAt == null
-              ? 'Waiting for first GPS fix'
-              : 'Last update ${_formatTrackingTimestamp(trackingState.lastUpdatedAt!)}';
-          final needsSettings =
-              trackingState.status ==
-                  LiveLocationTrackingStatus.permissionDeniedForever ||
-              trackingState.status ==
-                  LiveLocationTrackingStatus.serviceDisabled;
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
 
-          return Container(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 48,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(999),
+    Widget buildLiveLocationSheet(BuildContext ctx) =>
+        ValueListenableBuilder<LiveLocationTrackingState>(
+          valueListenable: service.trackingState,
+          builder: (ctx, trackingState, _) {
+            final lastUpdated = trackingState.lastUpdatedAt == null
+                ? 'Waiting for first GPS fix'
+                : 'Last update ${_formatTrackingTimestamp(trackingState.lastUpdatedAt!)}';
+            final needsSettings =
+                trackingState.status ==
+                    LiveLocationTrackingStatus.permissionDeniedForever ||
+                trackingState.status ==
+                    LiveLocationTrackingStatus.serviceDisabled;
+
+            return Container(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: isDesktop
+                    ? BorderRadius.circular(28)
+                    : const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!isDesktop)
+                    Center(
+                      child: Container(
+                        width: 48,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Live Location',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    trackingState.message,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    lastUpdated,
+                    style: TextStyle(
+                      color: AppUi.primary.withValues(alpha: 0.8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'Live Location',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  trackingState.message,
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  lastUpdated,
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                if (trackingState.isTracking)
-                  _PaymentMethodOption(
-                    title: 'Live sharing is on',
-                    subtitle:
-                        'Fresh Market admin can see your current map position.',
-                    icon: Icons.location_searching_rounded,
-                    isSelected: true,
-                    onTap: () async {
-                      await _retryLiveLocationTracking();
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                  )
-                else
-                  _PaymentMethodOption(
-                    title: 'Enable live location',
-                    subtitle:
-                        'Allow GPS updates so admin can track your delivery position.',
-                    icon: Icons.my_location_rounded,
-                    isSelected: true,
-                    onTap: () async {
-                      await _retryLiveLocationTracking();
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                  ),
-                if (needsSettings) ...[
-                  const SizedBox(height: 12),
-                  _PaymentMethodOption(
-                    title:
-                        trackingState.status ==
-                            LiveLocationTrackingStatus.serviceDisabled
-                        ? 'Open location settings'
-                        : 'Open app settings',
-                    subtitle:
-                        trackingState.status ==
-                            LiveLocationTrackingStatus.serviceDisabled
-                        ? 'Turn on GPS first, then return to the app.'
-                        : 'Grant location permission for Fresh Market.',
-                    icon: Icons.settings_rounded,
-                    isSelected: false,
-                    onTap: () async {
-                      if (trackingState.status ==
-                          LiveLocationTrackingStatus.serviceDisabled) {
-                        await service.openLocationSettings();
-                      } else {
-                        await service.openSettings();
-                      }
-                    },
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.pop(ctx),
+                          icon: const Icon(Icons.close_rounded),
+                          label: const Text('Close'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed:
+                              needsSettings
+                                  ? () => Geolocator.openAppSettings()
+                                  : () => _retryLiveLocationTracking(),
+                          icon: Icon(
+                            needsSettings
+                                ? Icons.settings_rounded
+                                : Icons.refresh_rounded,
+                          ),
+                          label: Text(needsSettings ? 'Settings' : 'Retry'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppUi.primary,
+                            minimumSize: const Size(0, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ],
+              ),
+            );
+          },
+        );
+
+    if (isDesktop) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Material(
+              color: Colors.transparent,
+              child: buildLiveLocationSheet(dialogContext),
             ),
-          );
-        },
-      ),
-    );
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) => buildLiveLocationSheet(context),
+      );
+    }
   }
 
   String _formatTrackingTimestamp(DateTime timestamp) {
@@ -3490,206 +3797,236 @@ class _ClientProfileTabState extends State<_ClientProfileTab> {
     final paymentLabel = _loadingPaymentMethod ? 'Loading...' : _paymentMethod;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6EF),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: const Color(0xFFF8FAF7),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 180,
+            pinned: true,
+            backgroundColor: AppUi.primary,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppUi.primary, Color(0xFF2E7D32)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      right: -30,
+                      top: -20,
+                      child: Opacity(
+                        opacity: 0.1,
+                        child: Image.asset('assets/logo.png', width: 200),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(40),
+              child: Container(
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF8FAF7),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                ),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                  Transform.translate(
+                    offset: const Offset(0, -60),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            border: Border.all(color: Colors.white, width: 4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Container(
+                              color: const Color(0xFFEAF7E3),
+                              child: Center(
+                                child: Text(
+                                  initials,
+                                  style: const TextStyle(
+                                    fontSize: 38,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppUi.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: AppUi.dark,
+                          ),
+                        ),
+                        Text(
+                          email,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Image.asset('assets/logo.png'),
                   ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'Fresh Market',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: AppUi.primary,
+                  const SizedBox(height: 12),
+
+                  _buildSectionHeader('ACCOUNT SETTINGS'),
+                  const SizedBox(height: 14),
+                  _ProfileActionTile(
+                    icon: Icons.person_outline_rounded,
+                    title: 'Personal Info',
+                    subtitle: phone,
+                    accentColor: const Color(0xFFE6F2FF),
+                    iconColor: const Color(0xFF4D91FF),
+                    onTap: _showEditProfileSheet,
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileActionTile(
+                    icon: Icons.email_outlined,
+                    title: 'Email Recovery',
+                    subtitle: email == 'No email linked'
+                        ? 'Add email later for reset'
+                        : email,
+                    accentColor: const Color(0xFFF2E8FF),
+                    iconColor: const Color(0xFF7B55C7),
+                    onTap: _showEmailUpgradeSheet,
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileActionTile(
+                    icon: Icons.location_on_outlined,
+                    title: 'Addresses',
+                    subtitle: location,
+                    accentColor: const Color(0xFFEAF7E3),
+                    iconColor: AppUi.primary,
+                    onTap: _showEditProfileSheet,
+                  ),
+                  const SizedBox(height: 12),
+                  ValueListenableBuilder<LiveLocationTrackingState>(
+                    valueListenable: LiveLocationService.instance.trackingState,
+                    builder: (context, trackingState, _) => _ProfileActionTile(
+                      icon: trackingState.isTracking
+                          ? Icons.location_searching_rounded
+                          : Icons.gps_off_rounded,
+                      title: 'Live Location',
+                      subtitle: trackingState.isTracking
+                          ? 'Sharing your live market position'
+                          : trackingState.message,
+                      accentColor: const Color(0xFFE7F2FF),
+                      iconColor: const Color(0xFF2C73D2),
+                      onTap: _showLiveLocationSheet,
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('PAYMENT & ORDERS'),
+                  const SizedBox(height: 14),
+                  _ProfileActionTile(
+                    icon: Icons.payments_outlined,
+                    title: 'Payment Methods',
+                    subtitle: paymentLabel,
+                    accentColor: const Color(0xFFFFF2E2),
+                    iconColor: const Color(0xFFB97A28),
+                    onTap: _showPaymentMethodSheet,
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileActionTile(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'Order History',
+                    subtitle: 'View your recent orders',
+                    accentColor: const Color(0xFFE9F5E8),
+                    iconColor: AppUi.primary,
+                    onTap: widget.onOpenOrders,
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileActionTile(
+                    icon: Icons.favorite_outline_rounded,
+                    title: 'Favorites',
+                    subtitle: 'Saved items and quick reorders',
+                    accentColor: const Color(0xFFFFEEE6),
+                    iconColor: const Color(0xFFFF8E5D),
+                    onTap: () => _showComingSoon('Favorites'),
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileActionTile(
+                    icon: Icons.support_agent_rounded,
+                    title: 'Help Center',
+                    subtitle: 'Contact support on WhatsApp',
+                    accentColor: const Color(0xFFE3F2FD),
+                    iconColor: const Color(0xFF1976D2),
+                    onTap: _launchWhatsAppHelp,
+                  ),
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 58,
+                    child: OutlinedButton.icon(
+                      onPressed: _signOut,
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text(
+                        'Sign Out',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                        side: BorderSide(color: Colors.red.shade100, width: 2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 100),
                 ],
               ),
-              const SizedBox(height: 18),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(22, 24, 22, 26),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 104,
-                      height: 104,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFE5F3D9), Color(0xFFBEDFAD)],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.w900,
-                          color: AppUi.primary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                        color: AppUi.dark,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      email,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              _ProfileActionTile(
-                icon: Icons.person_outline_rounded,
-                title: 'Personal Info',
-                subtitle: phone,
-                accentColor: const Color(0xFFE6F2FF),
-                iconColor: const Color(0xFF4D91FF),
-                onTap: _showEditProfileSheet,
-              ),
-              const SizedBox(height: 12),
-              _ProfileActionTile(
-                icon: Icons.email_outlined,
-                title: 'Email Recovery',
-                subtitle: email == 'No email linked'
-                    ? 'Add email later for reset'
-                    : email,
-                accentColor: const Color(0xFFF2E8FF),
-                iconColor: const Color(0xFF7B55C7),
-                onTap: _showEmailUpgradeSheet,
-              ),
-              const SizedBox(height: 12),
-              _ProfileActionTile(
-                icon: Icons.location_on_outlined,
-                title: 'Addresses',
-                subtitle: location,
-                accentColor: const Color(0xFFEAF7E3),
-                iconColor: AppUi.primary,
-                onTap: _showEditProfileSheet,
-              ),
-              const SizedBox(height: 12),
-              ValueListenableBuilder<LiveLocationTrackingState>(
-                valueListenable: LiveLocationService.instance.trackingState,
-                builder: (context, trackingState, _) => _ProfileActionTile(
-                  icon: trackingState.isTracking
-                      ? Icons.location_searching_rounded
-                      : Icons.gps_off_rounded,
-                  title: 'Live Location',
-                  subtitle: trackingState.isTracking
-                      ? 'Sharing your live market position'
-                      : trackingState.message,
-                  accentColor: const Color(0xFFE7F2FF),
-                  iconColor: const Color(0xFF2C73D2),
-                  onTap: _showLiveLocationSheet,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _ProfileActionTile(
-                icon: Icons.payments_outlined,
-                title: 'Payment Methods',
-                subtitle: paymentLabel,
-                accentColor: const Color(0xFFFFF2E2),
-                iconColor: const Color(0xFFB97A28),
-                onTap: _showPaymentMethodSheet,
-              ),
-              const SizedBox(height: 12),
-              _ProfileActionTile(
-                icon: Icons.receipt_long_outlined,
-                title: 'Order History',
-                subtitle: 'View your recent orders',
-                accentColor: const Color(0xFFE9F5E8),
-                iconColor: AppUi.primary,
-                onTap: widget.onOpenOrders,
-              ),
-              const SizedBox(height: 12),
-              _ProfileActionTile(
-                icon: Icons.favorite_outline_rounded,
-                title: 'Favorites',
-                subtitle: 'Saved items and quick reorders',
-                accentColor: const Color(0xFFFFEEE6),
-                iconColor: const Color(0xFFFF8E5D),
-                onTap: () => _showComingSoon('Favorites'),
-              ),
-              const SizedBox(height: 12),
-              _ProfileActionTile(
-                icon: Icons.settings_outlined,
-                title: 'Settings',
-                subtitle: 'Notifications and preferences',
-                accentColor: const Color(0xFFEFF4E8),
-                iconColor: const Color(0xFF7AA05A),
-                onTap: () => _showComingSoon('Settings'),
-              ),
-              _ProfileActionTile(
-                icon: Icons.support_agent_rounded,
-                title: 'Help & Support',
-                subtitle: 'Chat with us on WhatsApp',
-                accentColor: const Color(0xFFE7F3E7),
-                iconColor: const Color(0xFF25D366),
-                onTap: _launchWhatsAppHelp,
-              ),
-              const SizedBox(height: 22),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: OutlinedButton.icon(
-                  onPressed: _signOut,
-                  icon: const Icon(Icons.logout_rounded),
-                  label: const Text(
-                    'Sign Out',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red.shade600,
-                    side: BorderSide(color: Colors.red.shade100),
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+          color: Colors.grey.shade500,
+          letterSpacing: 1.2,
         ),
       ),
     );

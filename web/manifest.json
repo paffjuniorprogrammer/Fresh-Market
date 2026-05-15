@@ -1,11 +1,11 @@
 {
-    "name": "Fresh Market",
-    "short_name": "Fresh Market",
+    "name": "PAFLY",
+    "short_name": "PAFLY",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#1B5E20",
-    "theme_color": "#1B5E20",
-    "description": "Fresh Market",
+    "background_color": "#0D47A1",
+    "theme_color": "#0D47A1",
+    "description": "PAFLY",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

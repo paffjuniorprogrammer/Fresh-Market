@@ -349,6 +349,8 @@ class _AdminOrder {
   final String status;
   final String? cancelReason;
   final DateTime? createdAt;
+  final double discountAmount;
+  final String? promoCodeId;
 
   const _AdminOrder({
     required this.id,
@@ -375,8 +377,11 @@ class _AdminOrder {
     required this.status,
     this.cancelReason,
     this.createdAt,
+    this.discountAmount = 0,
+    this.promoCodeId,
   });
 
+  /// Balance = after-discount total - amount paid
   double get balance {
     final currentBalance = totalPrice - paidAmount;
     if (currentBalance <= 0) return 0;
@@ -467,6 +472,8 @@ class _AdminOrder {
       createdAt: json['created_at'] != null
           ? DateTime.parse('${json['created_at']}')
           : null,
+      discountAmount: (json['discount_amount'] as num?)?.toDouble() ?? 0,
+      promoCodeId: json['promo_code_id']?.toString(),
     );
   }
 }
@@ -583,8 +590,6 @@ class _PickedImageData {
   });
 }
 
-
-
 class _TopProductAggregate {
   final _AdminProduct product;
   double quantitySold;
@@ -597,11 +602,66 @@ class _TopProductAggregate {
   });
 }
 
+class _AdminPromoCode {
+  final String id;
+  final String code;
+  final String? description;
+  final String type;
+  final double value;
+  final String? freeProductId;
+  final double minPurchaseAmount;
+  final int maxUsesPerUser;
+  final int? totalMaxUses;
+  final DateTime? expiryDate;
+  final bool isActive;
+  final bool isVisibleToAll;
+  final DateTime createdAt;
+
+  _AdminPromoCode({
+    required this.id,
+    required this.code,
+    this.description,
+    required this.type,
+    this.value = 0,
+    this.freeProductId,
+    this.minPurchaseAmount = 0,
+    this.maxUsesPerUser = 1,
+    this.totalMaxUses,
+    this.expiryDate,
+    this.isActive = true,
+    this.isVisibleToAll = false,
+    required this.createdAt,
+  });
+
+  factory _AdminPromoCode.fromJson(Map<String, dynamic> json) {
+    return _AdminPromoCode(
+      id: '${json['id']}',
+      code: '${json['code'] ?? ''}',
+      description: json['description'] as String?,
+      type: '${json['type'] ?? 'discount_fixed'}',
+      value: (json['value'] as num?)?.toDouble() ?? 0,
+      freeProductId: json['free_product_id'] as String?,
+      minPurchaseAmount: (json['min_purchase_amount'] as num?)?.toDouble() ?? 0,
+      maxUsesPerUser: (json['max_uses_per_user'] as num?)?.toInt() ?? 1,
+      totalMaxUses: (json['total_max_uses'] as num?)?.toInt(),
+      expiryDate: json['expiry_date'] != null
+          ? DateTime.parse('${json['expiry_date']}')
+          : null,
+      isActive: json['is_active'] == true,
+      isVisibleToAll: json['is_visible_to_all'] == true,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse('${json['created_at']}')
+          : DateTime.now(),
+    );
+  }
+}
+
 enum _AdminSection {
   dashboard,
   products,
   priceControl,
   categories,
+  promotions,
   orders,
   clients,
   debts,
@@ -623,6 +683,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
   List<_AdminOrder> orders = [];
   List<_AdminDebt> debts = [];
   List<_ClientSummary> clients = [];
+  List<_AdminPromoCode> promoCodes = [];
 
   List<LiveLocation> liveLocations = [];
   bool _isLoading = true;
@@ -633,8 +694,6 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
   Timer? _adminRefreshDebounce;
   bool _isRefreshingAdminData = false;
   bool _queuedAdminRefresh = false;
-  String _currentUserRole = 'admin';
-  String? _currentUserId;
   String? _priceControlCategoryId;
   String? _selectedShopId;
   BusinessProfile _businessProfile = BusinessProfile.fallback();
@@ -710,21 +769,9 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
   Map<String, Shop> get _shopById => {for (final shop in shops) shop.id: shop};
 
 
-
-  Shop? get _ownedShop {
-    final currentUserId = _currentUserId;
-    if (currentUserId == null) return null;
-    for (final shop in shops) {
-      if (shop.ownerId == currentUserId) {
-        return shop;
-      }
-    }
-    return null;
-  }
-
   String _shopNameForId(String? shopId) {
-    if (shopId == null) return 'Fresh Market';
-    return _shopById[shopId]?.name ?? 'Fresh Market';
+    if (shopId == null) return 'PAFLY';
+    return _shopById[shopId]?.name ?? 'PAFLY';
   }
 
   List<_AdminProduct> get _visibleProducts {
@@ -907,6 +954,13 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
 
   double get _totalSalesRevenue {
     return _activeOrders.fold(0.0, (total, order) => total + order.totalPrice);
+  }
+
+  double get _totalDiscountsGiven {
+    return _activeOrders.fold(
+      0.0,
+      (total, order) => total + order.discountAmount,
+    );
   }
 
   double get _totalGrossProfit => _totalProductRevenue - _totalPurchaseCost;
@@ -1118,6 +1172,12 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
       onTap: () => setState(() => _section = _AdminSection.categories),
     ),
     AdminSidebarItemData(
+      label: 'Promotions',
+      icon: Icons.stars_rounded,
+      isActive: _section == _AdminSection.promotions,
+      onTap: () => setState(() => _section = _AdminSection.promotions),
+    ),
+    AdminSidebarItemData(
       label: 'Orders',
       icon: Icons.receipt_long_outlined,
       isActive: _section == _AdminSection.orders,
@@ -1173,6 +1233,14 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
       icon: Icons.payments_rounded,
       startColor: const Color(0xFFF2EFCF),
       endColor: const Color(0xFFE4DB9E),
+    ),
+    AdminOverviewCardData(
+      eyebrow: 'Active Promos',
+      value: '${promoCodes.where((p) => p.isActive).length}',
+      caption: 'Number of active coupon codes.',
+      icon: Icons.stars_rounded,
+      startColor: const Color(0xFFFFF2E2),
+      endColor: const Color(0xFFFFE082),
     ),
   ];
 
@@ -1318,7 +1386,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
     try {
       // We use individual try-catches to ensure one failing request (like a missing view)
       // doesn't block the entire admin dashboard from loading.
-      Future<T?> _safeLoad<T>(Future<T> fetcher, String debugLabel) async {
+      Future<T?> safeLoad<T>(Future<T> fetcher, String debugLabel) async {
         try {
           return await fetcher;
         } catch (e) {
@@ -1328,42 +1396,45 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
       }
 
       final responses = await Future.wait<dynamic>([
-        _safeLoad(_loadCurrentAdminUser(), 'current user profile'),
-        _safeLoad(_loadAdminShops(), 'shops list'),
-        _safeLoad(
-          Supabase.instance.client.from(_categoriesTable).select().order('name'),
+        safeLoad(_loadCurrentAdminUser(), 'current user profile'),
+        safeLoad(_loadAdminShops(), 'shops list'),
+        safeLoad(
+          Supabase.instance.client
+              .from(_categoriesTable)
+              .select()
+              .order('name'),
           'categories',
         ),
-        _safeLoad(
+        safeLoad(
           Supabase.instance.client
               .from(_productsTable)
               .select()
               .order('created_at', ascending: false),
           'products',
         ),
-        _safeLoad(
+        safeLoad(
           Supabase.instance.client
               .from(_locationsTable)
               .select()
               .order('updated_at', ascending: false),
           'live locations',
         ),
-        _safeLoad(_loadAdminOrders(), 'orders list'),
-        _safeLoad(
+        safeLoad(_loadAdminOrders(), 'orders list'),
+        safeLoad(
           Supabase.instance.client
               .from(_debtsView)
               .select()
               .order('balance', ascending: false),
           'outstanding debts',
         ),
-        _safeLoad(
+        safeLoad(
           Supabase.instance.client
               .from(_clientSummariesView)
               .select()
               .order('total_debt', ascending: false),
           'client summaries',
         ),
-        _safeLoad(
+        safeLoad(
           Supabase.instance.client
               .from(_businessProfileTable)
               .select()
@@ -1371,17 +1442,21 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
               .maybeSingle(),
           'business profile',
         ),
+        safeLoad(
+          Supabase.instance.client
+              .from('promo_codes')
+              .select()
+              .order('created_at', ascending: false),
+          'promo codes',
+        ),
       ]);
 
       if (!mounted) return;
 
       setState(() {
         // Response 0: User Profile
-        final userProfile = responses[0] as Map<String, dynamic>?;
-        if (userProfile != null) {
-          _currentUserRole = userProfile['role']?.toString() ?? 'admin';
-          _currentUserId = userProfile['id']?.toString();
-        }
+        // final userProfile = responses[0] as Map<String, dynamic>?;
+
 
         // Response 1: Shops
         if (responses[1] != null) {
@@ -1446,6 +1521,15 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
             : BusinessProfile.fromJson(
                 Map<String, dynamic>.from(responses[8] as Map),
               );
+
+        // Response 9: Promo Codes
+        if (responses.length > 9 && responses[9] != null) {
+          promoCodes = (responses[9] as List<dynamic>)
+              .map(
+                (item) => _AdminPromoCode.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
+        }
 
         if (_selectedShopId != null &&
             shops.every((shop) => shop.id != _selectedShopId)) {
@@ -1517,8 +1601,6 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
         .maybeSingle();
     return response == null ? null : Map<String, dynamic>.from(response);
   }
-
-
 
   Future<List<dynamic>> _loadAdminOrders() async {
     try {
@@ -2126,7 +2208,9 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
     final momoCode = TextEditingController(
       text: existing?.momoPayMerchantCode ?? '',
     );
-    final bankAccount = TextEditingController(text: existing?.bankAccount ?? '');
+    final bankAccount = TextEditingController(
+      text: existing?.bankAccount ?? '',
+    );
     final deliveryBaseFee = TextEditingController(
       text: (existing?.deliveryBaseFee ?? 500).toStringAsFixed(0),
     );
@@ -2277,10 +2361,9 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                       Expanded(
                         child: TextField(
                           controller: deliveryThreshold,
-                          keyboardType:
-                              const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           decoration: _fieldDecoration(
                             label: 'Distance threshold',
                             icon: Icons.route_outlined,
@@ -2354,7 +2437,9 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                       }
                       final commissionValue =
                           double.tryParse(commission.text.trim()) ?? 0;
-                      final latitudeValue = double.tryParse(latitude.text.trim());
+                      final latitudeValue = double.tryParse(
+                        latitude.text.trim(),
+                      );
                       final longitudeValue = double.tryParse(
                         longitude.text.trim(),
                       );
@@ -2399,10 +2484,10 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                             20000,
                         'delivery_extra_order_percent':
                             (double.tryParse(
-                                      deliveryExtraOrderPercent.text.trim(),
-                                    ) ??
-                                    20) /
-                                100,
+                                  deliveryExtraOrderPercent.text.trim(),
+                                ) ??
+                                20) /
+                            100,
                         'commission_percent': commissionValue,
                         'is_active': isActive,
                       };
@@ -2526,8 +2611,6 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
       );
     }
   }
-
-
 
   Future<void> _updateOrderStatus(_AdminOrder order, String status) async {
     try {
@@ -4109,9 +4192,245 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
     );
   }
 
+  // â”€â”€ Export orders as CSV (via PDF Share/Download) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> _exportOrdersCsvFlow() async {
+    final now = DateTime.now();
+    final start = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      initialDate: now.subtract(const Duration(days: 30)),
+    );
+    if (start == null || !mounted) return;
+    final end = await showDatePicker(
+      context: context,
+      firstDate: start,
+      lastDate: now,
+      initialDate: now,
+    );
+    if (end == null || !mounted) return;
+    await _exportOrdersCsv(start, end);
+  }
+
+  Future<void> _exportOrdersCsv(DateTime start, DateTime end) async {
+    final filtered = orders.where((order) {
+      final createdAt = order.createdAt;
+      if (createdAt == null) return false;
+      final date = DateTime(createdAt.year, createdAt.month, createdAt.day);
+      return !date.isBefore(DateTime(start.year, start.month, start.day)) &&
+          !date.isAfter(DateTime(end.year, end.month, end.day));
+    }).toList();
+
+    if (filtered.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No orders found in selected date range.')),
+        );
+      }
+      return;
+    }
+
+    // Produce a styled PDF table that can be saved/shared (works on web & mobile)
+    await _printOrdersReport(start, end, filtered);
+  }
+
+  // â”€â”€ Print Orders Report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Future<void> _printOrdersReportFlow() async {
+    final now = DateTime.now();
+    final start = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      initialDate: now.subtract(const Duration(days: 30)),
+    );
+    if (start == null || !mounted) return;
+    final end = await showDatePicker(
+      context: context,
+      firstDate: start,
+      lastDate: now,
+      initialDate: now,
+    );
+    if (end == null || !mounted) return;
+    final filtered = orders.where((order) {
+      final createdAt = order.createdAt;
+      if (createdAt == null) return false;
+      final date = DateTime(createdAt.year, createdAt.month, createdAt.day);
+      return !date.isBefore(DateTime(start.year, start.month, start.day)) &&
+          !date.isAfter(DateTime(end.year, end.month, end.day));
+    }).toList();
+    if (filtered.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No orders found in selected date range.')),
+        );
+      }
+      return;
+    }
+    await _printOrdersReport(start, end, filtered);
+  }
+
+  Future<void> _printOrdersReport(
+    DateTime start,
+    DateTime end,
+    List<_AdminOrder> filtered,
+  ) async {
+    final businessName = _businessProfile.businessName.trim().isEmpty
+        ? 'PAFLY'
+        : _businessProfile.businessName.trim();
+    final businessAddress = _businessProfile.addressSummary;
+    final businessContact = _businessProfile.contactSummary;
+
+    final doc = pw.Document();
+    const headerColor = PdfColor.fromInt(0xFF2E7D32);
+    const lightGreen = PdfColor.fromInt(0xFFE8F5E9);
+
+    final grandTotal = filtered.fold<double>(0, (s, o) => s + o.totalPrice);
+    final grandDelivery = filtered.fold<double>(0, (s, o) => s + o.deliveryFee);
+    final grandDiscount = filtered.fold<double>(0, (s, o) => s + o.discountAmount);
+    final grandSubtotal = filtered.fold<double>(
+      0,
+      (s, o) => s + o.normalizedItems.fold<double>(0, (ss, i) => ss + i.quantityKg * i.pricePerKg),
+    );
+
+    String fmtDate(DateTime? dt) {
+      if (dt == null) return '';
+      return '${dt.day.toString().padLeft(2, "0")}/${dt.month.toString().padLeft(2, "0")}/${dt.year}';
+    }
+    String fmtTime(DateTime? dt) {
+      if (dt == null) return '';
+      return '${dt.hour.toString().padLeft(2, "0")}:${dt.minute.toString().padLeft(2, "0")}';
+    }
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(28),
+        header: (ctx) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(businessName, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: headerColor)),
+                    if (businessAddress.isNotEmpty) pw.Text(businessAddress, style: const pw.TextStyle(fontSize: 10)),
+                    if (businessContact.isNotEmpty) pw.Text(businessContact, style: const pw.TextStyle(fontSize: 10)),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text('ORDERS REPORT', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('${fmtDate(start)} to ${fmtDate(end)}', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('Generated: ${fmtDate(DateTime.now())} ${fmtTime(DateTime.now())}', style: const pw.TextStyle(fontSize: 9)),
+                  ],
+                ),
+              ],
+            ),
+            pw.Divider(color: headerColor, thickness: 1.5),
+            pw.SizedBox(height: 4),
+          ],
+        ),
+        footer: (ctx) => pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text('$businessName - Confidential', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+            pw.Text('Page ${ctx.pageNumber} of ${ctx.pagesCount}', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+          ],
+        ),
+        build: (ctx) => [
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(color: lightGreen, borderRadius: pw.BorderRadius.circular(8)),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+              children: [
+                pw.Column(children: [
+                  pw.Text('Orders', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                  pw.Text(filtered.length.toString(), style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: headerColor)),
+                ]),
+                pw.Column(children: [
+                  pw.Text('Products', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                  pw.Text('${grandSubtotal.toStringAsFixed(0)} Frw', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                ]),
+                pw.Column(children: [
+                  pw.Text('Delivery', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                  pw.Text('${grandDelivery.toStringAsFixed(0)} Frw', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                ]),
+                if (grandDiscount > 0)
+                  pw.Column(children: [
+                    pw.Text('Discounts', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                    pw.Text('-${grandDiscount.toStringAsFixed(0)} Frw', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.green800)),
+                  ]),
+                pw.Column(children: [
+                  pw.Text('Grand Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                  pw.Text('${grandTotal.toStringAsFixed(0)} Frw', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: headerColor)),
+                ]),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 14),
+          pw.Table(
+            border: pw.TableBorder.all(color: PdfColors.green200, width: 0.5),
+            columnWidths: {
+              0: const pw.FixedColumnWidth(32),
+              1: const pw.FlexColumnWidth(2.2),
+              2: const pw.FlexColumnWidth(1.5),
+              3: const pw.FlexColumnWidth(2.5),
+              4: const pw.FixedColumnWidth(52),
+              5: const pw.FixedColumnWidth(38),
+              6: const pw.FixedColumnWidth(60),
+              7: const pw.FixedColumnWidth(50),
+            },
+            children: [
+              pw.TableRow(
+                decoration: pw.BoxDecoration(color: headerColor),
+                children: ['#', 'Client', 'Phone', 'Products', 'Date', 'Time', 'Total (Frw)', 'Status']
+                    .map((h) => pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+                      child: pw.Text(h, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 8)),
+                    )).toList(),
+              ),
+              ...filtered.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final o = entry.value;
+                final bg = idx.isEven ? PdfColors.white : lightGreen;
+                final products = o.normalizedItems
+                    .map((it) => '${it.productName} (${it.quantityKg.toStringAsFixed(1)}${it.unit})')
+                    .join(', ');
+                final totalLabel = o.discountAmount > 0
+                    ? '${o.totalPrice.toStringAsFixed(0)} (-${o.discountAmount.toStringAsFixed(0)})'
+                    : o.totalPrice.toStringAsFixed(0);
+                return pw.TableRow(
+                  decoration: pw.BoxDecoration(color: bg),
+                  children: [
+                    o.id.toString(),
+                    o.clientName,
+                    o.phone,
+                    products.isEmpty ? '-' : products,
+                    fmtDate(o.createdAt),
+                    fmtTime(o.createdAt),
+                    totalLabel,
+                    o.status,
+                  ].map((cell) => pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: pw.Text(cell, style: const pw.TextStyle(fontSize: 7.5)),
+                  )).toList(),
+                );
+              }),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (_) => doc.save());
+  }
   Future<void> _printDeliveryNote(_AdminOrder order) async {
     final businessName = _businessProfile.businessName.trim().isEmpty
-        ? 'Fresh Market'
+        ? 'PAFLY'
         : _businessProfile.businessName.trim();
     final businessContact = _businessProfile.contactSummary;
     final businessAddress = _businessProfile.addressSummary;
@@ -4806,6 +5125,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
       _AdminSection.products => _productsSection(),
       _AdminSection.priceControl => _priceControlSection(),
       _AdminSection.categories => _categoriesSection(),
+      _AdminSection.promotions => _promotionsSection(),
       _AdminSection.orders => _ordersSection(),
       _AdminSection.clients => _clientsSection(),
       _AdminSection.debts => _debtsSection(),
@@ -5041,8 +5361,6 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
       ],
     );
   }
-
-
 
   Widget _priceControlSection() {
     final selectedCategory = _selectedPriceControlCategory;
@@ -5388,11 +5706,21 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
         _SectionTitle(
           title: 'Reports & Printing',
           subtitle:
-              'Print delivery notes for individual orders and debt reports by date range.',
-          action: FilledButton.icon(
-            onPressed: _printDebtReportFlow,
-            icon: const Icon(Icons.print_outlined),
-            label: const Text('Print Debt Report'),
+              'Export orders, print delivery notes and debt reports by date range.',
+          action: Wrap(
+            spacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _exportOrdersCsvFlow,
+                icon: const Icon(Icons.download_outlined),
+                label: const Text('Export CSV'),
+              ),
+              FilledButton.icon(
+                onPressed: _printOrdersReportFlow,
+                icon: const Icon(Icons.print_outlined),
+                label: const Text('Print Orders'),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 14),
@@ -5419,6 +5747,12 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                 label: 'Total sales',
                 value: _moneyLabel(_totalSalesRevenue),
               ),
+              if (_totalDiscountsGiven > 0)
+                _OrderMetricChip(
+                  label: 'Promo discounts given',
+                  value: '-',
+                  valueColor: Colors.green.shade700,
+                ),
             ],
           ),
         ),
@@ -5460,8 +5794,6 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
   }
 
   Widget _settingsSection() {
-
-
     final contactSummary = _businessProfile.contactSummary.isEmpty
         ? 'No phone or email saved yet.'
         : _businessProfile.contactSummary;
@@ -5597,7 +5929,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                         Switch(
                           value: shop.isActive,
                           onChanged: (_) => _toggleShopStatus(shop),
-                          activeColor: _AdminUi.primary,
+                          activeThumbColor: _AdminUi.primary,
                         ),
                         IconButton(
                           onPressed: () => _editShop(shop),
@@ -6403,19 +6735,27 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
-                  children: [
+                   children: [
                     _OrderMetricChip(
                       label: 'Items',
                       value: '${order.itemsCount}',
                     ),
                     _OrderMetricChip(
-                      label: 'Total',
+                      label: 'Total (after discount)',
                       value: _moneyLabel(order.totalPrice),
                     ),
                     _OrderMetricChip(
                       label: 'Delivery',
                       value: _moneyLabel(order.deliveryFee),
                     ),
+                    if (order.discountAmount > 0)
+                      _OrderMetricChip(
+                        label: order.discountAmount == order.deliveryFee
+                            ? 'Discount (Free Delivery)'
+                            : 'Promo Discount',
+                        value: '-${_moneyLabel(order.discountAmount)}',
+                        valueColor: Colors.green.shade700,
+                      ),
                     _OrderMetricChip(
                       label: 'Paid',
                       value: _moneyLabel(order.paidAmount),
@@ -6448,6 +6788,312 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _promotionsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(
+          title: 'Promotions & Coupons',
+          subtitle: 'Create and manage promo codes for your customers.',
+          action: FilledButton.icon(
+            onPressed: () => _editPromoCode(),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Create Promo Code'),
+          ),
+        ),
+        const SizedBox(height: 18),
+        if (promoCodes.isEmpty)
+          const _AdminEmptyState(
+            icon: Icons.stars_rounded,
+            title: 'No promotions yet',
+            message:
+                'Create your first promo code to offer discounts or free delivery.',
+          )
+        else
+          ...promoCodes.map((promo) => _promoCodeCard(promo)),
+      ],
+    );
+  }
+
+  Widget _promoCodeCard(_AdminPromoCode promo) {
+    final isExpired =
+        promo.expiryDate != null && promo.expiryDate!.isBefore(DateTime.now());
+    final statusColor = promo.isActive && !isExpired ? Colors.green : Colors.red;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.stars_rounded, color: statusColor),
+        ),
+        title: Row(
+          children: [
+            Text(
+              promo.code,
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                promo.isActive && !isExpired ? 'ACTIVE' : 'INACTIVE',
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (promo.isVisibleToAll) ...[
+              const SizedBox(width: 6),
+              const Icon(Icons.visibility_rounded, size: 16, color: Colors.blue),
+            ],
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              promo.description ?? 'No description',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Type: ${promo.type.replaceAll('_', ' ').toUpperCase()} • Exp: ${promo.expiryDate == null ? 'Never' : _orderDateLabel(promo.expiryDate!)}',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+            ),
+          ],
+        ),
+        trailing: IconButton(
+          onPressed: () => _editPromoCode(promo),
+          icon: const Icon(Icons.edit_outlined),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editPromoCode([_AdminPromoCode? promo]) async {
+    final codeCtrl = TextEditingController(text: promo?.code);
+    final descCtrl = TextEditingController(text: promo?.description);
+    final valueCtrl = TextEditingController(text: promo?.value.toString());
+    final minPurchaseCtrl =
+        TextEditingController(text: promo?.minPurchaseAmount.toString());
+    final maxUsesCtrl =
+        TextEditingController(text: promo?.totalMaxUses?.toString() ?? '');
+    var type = promo?.type ?? 'free_delivery';
+    var isActive = promo?.isActive ?? true;
+    var isVisible = promo?.isVisibleToAll ?? false;
+    var expiryDate = promo?.expiryDate;
+    var isSaving = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Text(promo == null ? 'Create Promo Code' : 'Edit Promo Code'),
+            content: SizedBox(
+              width: 500,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: codeCtrl,
+                      decoration: _fieldDecoration(
+                        label: 'Promo Code (e.g. SAVE20)',
+                        icon: Icons.abc,
+                      ),
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descCtrl,
+                      decoration: _fieldDecoration(
+                        label: 'Description',
+                        icon: Icons.description_outlined,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: type,
+                      decoration: _fieldDecoration(
+                        label: 'Type',
+                        icon: Icons.merge_type,
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'free_delivery',
+                          child: Text('Free Delivery'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'discount_fixed',
+                          child: Text('Fixed Discount'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'discount_percent',
+                          child: Text('Percentage Discount'),
+                        ),
+                      ],
+                      onChanged: (val) => setDialogState(() => type = val!),
+                    ),
+                    if (type != 'free_delivery') ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: valueCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: _fieldDecoration(
+                          label: type == 'discount_percent'
+                              ? 'Discount Percentage (%)'
+                              : 'Discount Amount (Rwf)',
+                          icon: Icons.money,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: minPurchaseCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: _fieldDecoration(
+                        label: 'Minimum Purchase (Rwf)',
+                        icon: Icons.shopping_bag_outlined,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: maxUsesCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: _fieldDecoration(
+                        label: 'Total Max Uses (Empty for Unlimited)',
+                        icon: Icons.repeat_rounded,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ListTile(
+                      title: Text(
+                        expiryDate == null
+                            ? 'No Expiry Date'
+                            : 'Expires: ${_orderDateLabel(expiryDate!)}',
+                      ),
+                      trailing: const Icon(Icons.calendar_today_rounded),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: expiryDate ??
+                              DateTime.now().add(const Duration(days: 30)),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
+                        );
+                        if (picked != null) {
+                          setDialogState(() => expiryDate = picked);
+                        }
+                      },
+                    ),
+                    SwitchListTile(
+                      title: const Text('Active'),
+                      value: isActive,
+                      onChanged: (val) => setDialogState(() => isActive = val),
+                    ),
+                    SwitchListTile(
+                      title: const Text('Visible to all users'),
+                      subtitle: const Text(
+                        'Will be shown in user profiles as an offer',
+                      ),
+                      value: isVisible,
+                      onChanged: (val) => setDialogState(() => isVisible = val),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        final code = codeCtrl.text.trim().toUpperCase();
+                        if (code.isEmpty) return;
+
+                        setDialogState(() => isSaving = true);
+                        try {
+                          final data = {
+                            'code': code,
+                            'description': descCtrl.text.trim(),
+                            'type': type,
+                            'value':
+                                double.tryParse(valueCtrl.text.trim()) ?? 0,
+                            'min_purchase_amount':
+                                double.tryParse(minPurchaseCtrl.text.trim()) ??
+                                0,
+                            'total_max_uses':
+                                int.tryParse(maxUsesCtrl.text.trim()),
+                            'expiry_date': expiryDate?.toIso8601String(),
+                            'is_active': isActive,
+                            'is_visible_to_all': isVisible,
+                          };
+
+                          if (promo == null) {
+                            await Supabase.instance.client
+                                .from('promo_codes')
+                                .insert(data);
+                          } else {
+                            await Supabase.instance.client
+                                .from('promo_codes')
+                                .update(data)
+                                .eq('id', promo.id);
+                          }
+
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                            _loadAdminData(showLoading: false);
+                            _showAdminSnack('Promo code saved successfully!');
+                          }
+                        } catch (e) {
+                          _showAdminSnack('Error saving promo code: $e',
+                              isError: true);
+                        } finally {
+                          if (dialogContext.mounted) {
+                            setDialogState(() => isSaving = false);
+                          }
+                        }
+                      },
+                child: isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "Fresh Market" "\0"
-            VALUE "FileDescription", "Fresh Market" "\0"
+            VALUE "CompanyName", "PAFLY" "\0"
+            VALUE "FileDescription", "PAFLY" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "Fresh Market" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 Fresh Market. All rights reserved." "\0"
-            VALUE "OriginalFilename", "fresh_market.exe" "\0"
-            VALUE "ProductName", "Fresh Market" "\0"
+            VALUE "InternalName", "PAFLY" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 PAFLY. All rights reserved." "\0"
+            VALUE "OriginalFilename", "pafly.exe" "\0"
+            VALUE "ProductName", "PAFLY" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

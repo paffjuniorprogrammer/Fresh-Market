@@ -1,5 +1,5 @@
 name: potato_app
-description: "Fresh Market desktop and mobile ordering application."
+description: "PAFLY grocery delivery and ordering platform."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -72,8 +72,8 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: "assets/logo.png"
-    background_color: "#1B5E20"
-    theme_color: "#1B5E20"
+    background_color: "#0D47A1"
+    theme_color: "#0D47A1"
   windows:
     generate: true
     image_path: "assets/logo.png"

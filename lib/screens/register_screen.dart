@@ -50,8 +50,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-
-
     if (!emailInput.contains('@')) {
       PotatoNotification.show(
         context,
@@ -203,7 +201,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF5F8EF), Color(0xFFE5F1DB)],
+            colors: [Color(0xFFF0F4FF), Color(0xFFE0E7FF)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -261,7 +259,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         ),
                                         style: IconButton.styleFrom(
                                           backgroundColor: const Color(
-                                            0xFFF1F5EC,
+                                            0xFFF0F4FF,
                                           ),
                                           foregroundColor: AppUi.dark,
                                         ),
@@ -281,7 +279,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         const SizedBox(width: 8),
                                         const Flexible(
                                           child: Text(
-                                            'Fresh Market',
+                                            'PAFLY',
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               fontSize: 20,
@@ -304,7 +302,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       Icons.arrow_back_ios_new_rounded,
                                     ),
                                     style: IconButton.styleFrom(
-                                      backgroundColor: const Color(0xFFF1F5EC),
+                                      backgroundColor: const Color(0xFFF0F4FF),
                                       foregroundColor: AppUi.dark,
                                     ),
                                   ),
@@ -319,7 +317,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ),
                                       const SizedBox(width: 10),
                                       const Text(
-                                        'Fresh Market',
+                                        'PAFLY',
                                         style: TextStyle(
                                           fontSize: 24,
                                           fontWeight: FontWeight.w900,
@@ -484,4 +482,3 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-

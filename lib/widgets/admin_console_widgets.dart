@@ -405,7 +405,7 @@ class AdminConsoleHeader extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Fresh Market',
+                                'PAFLY',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -455,7 +455,7 @@ class AdminConsoleHeader extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Fresh Market',
+                            'PAFLY',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(

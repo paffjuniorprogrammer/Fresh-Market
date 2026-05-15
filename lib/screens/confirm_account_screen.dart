@@ -147,7 +147,7 @@ class _ConfirmAccountScreenState extends State<ConfirmAccountScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF5F8EF), Color(0xFFE5F1DB)],
+            colors: [Color(0xFFF0F4FF), Color(0xFFE0E7FF)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -208,7 +208,7 @@ class _ConfirmAccountScreenState extends State<ConfirmAccountScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0F7EB),
+                          color: const Color(0xFFF0F4FF),
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: AppUi.primary.withValues(alpha: 0.15),
@@ -388,7 +388,7 @@ class _InfoTile extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAF5),
+        color: const Color(0xFFF0F4FF),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
       ),

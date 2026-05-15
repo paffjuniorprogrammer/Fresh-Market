@@ -2,11 +2,19 @@ class AppConstants {
   static const String supabaseUrl = 'https://qhpfppsdjmibucurucui.supabase.co';
   static const String supabaseAnonKey =
       'sb_publishable_EmsYOaccLHFQg2FEFFn5qw_xxqUd1bo';
-  static const String defaultBusinessName = 'Fresh Market';
+  
+  // Firebase Web Configuration
+  static const String firebaseApiKey = 'AIzaSyAyXcvufbiAIAyHBZwI3-QLELNDt1VdYe8';
+  static const String firebaseProjectId = 'potato-dashboard-fcm-777666';
+  static const String firebaseMessagingSenderId = '351902567984';
+  static const String firebaseAppId = '1:351902567984:web:0b0e474a8c42b4b8e327f5';
+  static const String firebaseVapidKey = 'BFyIevcMUtkTPuoBww8qHY7v7JhQG8AVtgOwhTRC7l5Ih6kACf7voevBziOuPrcENcB9FJjcwQpAGw85XVsAjTE';
 
-  // Update these coordinates to your actual Fresh Market shop location.
-  static const double freshMarketLatitude = -1.4995;
-  static const double freshMarketLongitude = 29.6348;
+  static const String defaultBusinessName = 'PAFLY';
+
+  // Update these coordinates to your actual PAFLY shop location.
+  static const double paflyLatitude = -1.4995;
+  static const double paflyLongitude = 29.6348;
   static const double baseDeliveryFee = 500;
   static const double deliveryDistanceThresholdKm = 4;
   static const double deliveryExtraKmFee = 200;
@@ -25,9 +33,9 @@ class AppConstants {
   static const String debtsView = 'outstanding_debts';
   static const String clientSummariesView = 'client_summaries';
   static const String productsBucket = 'products';
-  static const String authRecoveryRedirectUrl = 'freshmarket://reset-password';
+  static const String authRecoveryRedirectUrl = 'pafly://reset-password';
   static const String authConfirmationRedirectUrl =
-      'freshmarket://auth-confirmation';
+      'pafly://auth-confirmation';
   @Deprecated('Use authRecoveryRedirectUrl or authConfirmationRedirectUrl.')
   static const String authRedirectUrl = authRecoveryRedirectUrl;
   static const String ensureCurrentUserProfileRpc =

@@ -202,8 +202,8 @@ class LiveLocationService {
     try {
       final profile = await loadBusinessProfile(forceRefresh: false);
       return getDistanceToCoordinates(
-        latitude: profile.latitude ?? AppConstants.freshMarketLatitude,
-        longitude: profile.longitude ?? AppConstants.freshMarketLongitude,
+        latitude: profile.latitude ?? AppConstants.paflyLatitude,
+        longitude: profile.longitude ?? AppConstants.paflyLongitude,
       );
     } catch (_) {
       return null;
@@ -218,13 +218,11 @@ class LiveLocationService {
       Position? position = currentPosition.value;
       if (position == null) {
         position = await Geolocator.getLastKnownPosition();
-        if (position == null) {
-          position = await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.high,
-            ),
-          );
-        }
+        position ??= await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
+        );
         currentPosition.value = position;
       }
 
@@ -299,7 +297,7 @@ class LiveLocationService {
         uri,
         headers: const {
           'Accept': 'application/json',
-          'User-Agent': 'Fresh Market/1.0',
+          'User-Agent': 'PAFLY/1.0',
         },
       );
 

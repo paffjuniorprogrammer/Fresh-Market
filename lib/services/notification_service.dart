@@ -45,8 +45,10 @@ class NotificationService {
           table: 'orders',
           callback: (payload) {
             final newOrder = payload.newRecord;
-            final customerName = '${newOrder['customer_name'] ?? 'Client'}'.trim();
-            final paymentMethod = '${newOrder['payment_method'] ?? 'Cash'}'.trim();
+            final customerName = '${newOrder['customer_name'] ?? 'Client'}'
+                .trim();
+            final paymentMethod = '${newOrder['payment_method'] ?? 'Cash'}'
+                .trim();
             final totalPrice = num.tryParse('${newOrder['total_price'] ?? ''}');
             final totalLabel = totalPrice == null
                 ? ''
@@ -106,7 +108,7 @@ class NotificationService {
               if (!PushNotificationService.instance.isFirebaseReady) {
                 unawaited(
                   PushNotificationService.instance.showLocalNotification(
-                    title: 'Fresh Market update',
+                    title: 'PAFLY update',
                     body: message,
                     playSound: false,
                   ),

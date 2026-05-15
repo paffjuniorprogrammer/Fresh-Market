@@ -47,7 +47,7 @@ class Shop {
     return Shop(
       id: '${json['id']}',
       ownerId: json['owner_id'] as String?,
-      name: '${json['name'] ?? 'Fresh Market'}',
+      name: '${json['name'] ?? 'PAFLY'}',
       description: '${json['description'] ?? ''}',
       logoUrl: '${json['logo_url'] ?? ''}',
       coverImageUrl: '${json['cover_image_url'] ?? ''}',
