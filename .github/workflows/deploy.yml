@@ -26,7 +26,15 @@ jobs:
         run: flutter pub get
 
       - name: Build Web 🏗️
-        run: flutter build web --release --base-href /Fresh-Market/
+        run: |
+          flutter build web --release --base-href /Fresh-Market/ \
+          --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+          --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+          --dart-define=FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }} \
+          --dart-define=FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }} \
+          --dart-define=FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }} \
+          --dart-define=FIREBASE_APP_ID=${{ secrets.FIREBASE_APP_ID }} \
+          --dart-define=FIREBASE_VAPID_KEY=${{ secrets.FIREBASE_VAPID_KEY }}
 
       - name: Upload artifact 📤
         uses: actions/upload-pages-artifact@v3
