@@ -632,6 +632,15 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
             orderDetails: orderDetails,
           ),
         );
+        unawaited(
+          PushNotificationService.instance.notifyClientEvent(
+            eventType: 'new_order',
+            userId: uid,
+            orderId: orderId,
+            customerName: name,
+            totalPrice: totalPrice,
+          ),
+        );
       }
 
       if (!mounted) return orderId;

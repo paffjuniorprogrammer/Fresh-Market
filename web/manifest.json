@@ -1,11 +1,13 @@
 {
     "name": "PAFLY",
     "short_name": "PAFLY",
-    "start_url": ".",
+    "start_url": "/#/",
+    "scope": "/",
     "display": "standalone",
+    "display_override": ["standalone", "window-controls-overlay"],
     "background_color": "#0D47A1",
     "theme_color": "#0D47A1",
-    "description": "PAFLY",
+    "description": "PAFLY grocery delivery and ordering platform.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

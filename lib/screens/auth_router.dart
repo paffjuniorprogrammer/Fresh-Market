@@ -13,6 +13,7 @@ import 'guest_browse_screen.dart';
 import 'package:potato_app/screens/admin_control_screen.dart';
 import 'setup_screens.dart';
 import '../widgets/branded_loading_indicator.dart';
+import '../widgets/location_guard.dart';
 
 enum AppLaunchState {
   ready,
@@ -376,14 +377,14 @@ class _AuthRouterState extends State<AuthRouter> {
                   session.user.id,
                 ),
               );
-              return const AdminControlScreen();
+              return const LocationGuard(child: AdminControlScreen());
             } else {
               unawaited(
                 PushNotificationService.instance.registerClientDevice(
                   session.user.id,
                 ),
               );
-              return const ClientDashboard();
+              return const LocationGuard(child: ClientDashboard());
             }
           },
         );

@@ -319,15 +319,15 @@ class PushNotificationService {
     final eventType = '${data['eventType'] ?? ''}'.trim().toLowerCase();
     switch (eventType) {
       case 'new_order':
-        return 'New customer order';
+        return 'Order Placed';
       case 'order_cancelled':
-        return 'Order cancelled by client';
+        return 'Order Cancelled';
       case 'order_status':
-        return 'Order updated';
+        return 'Order Updated';
       case 'payment_received':
-        return 'Payment received';
+        return 'Payment Received';
       case 'price_update':
-        return 'Product price updated';
+        return 'Price Update';
       default:
         return null;
     }
@@ -337,54 +337,50 @@ class PushNotificationService {
     final eventType = '${data['eventType'] ?? ''}'.trim().toLowerCase();
     final orderId = '${data['orderId'] ?? ''}'.trim();
     final customerName = '${data['customerName'] ?? ''}'.trim();
-    final paymentMethod = '${data['paymentMethod'] ?? ''}'.trim();
     final totalPrice = double.tryParse('${data['totalPrice'] ?? ''}');
     final paymentAmount = double.tryParse('${data['paymentAmount'] ?? ''}');
     final orderStatus = '${data['orderStatus'] ?? ''}'.trim().toLowerCase();
     final cancelReason = '${data['cancelReason'] ?? ''}'.trim();
 
+    final orderLabel = orderId.isNotEmpty ? 'Order #$orderId' : 'An order';
+
     switch (eventType) {
       case 'new_order':
-        final customerLabel = customerName.isNotEmpty
-            ? customerName
-            : 'A client';
-        final orderLabel = orderId.isNotEmpty
-            ? 'Order #$orderId'
-            : 'A new order';
-        final paymentLabel = paymentMethod.isNotEmpty
-            ? paymentMethod
-            : 'Unspecified payment';
-        final amountLabel = totalPrice == null || totalPrice <= 0
-            ? null
-            : '${totalPrice.toStringAsFixed(0)} Frw';
-        final body = '$customerLabel placed $orderLabel. - $paymentLabel';
-        return amountLabel == null ? body : '$body - $amountLabel';
-      case 'order_cancelled':
-        final customerLabel = customerName.isNotEmpty
-            ? customerName
-            : 'A client';
-        final orderLabel = orderId.isNotEmpty ? 'order #$orderId' : 'an order';
-        if (cancelReason.isNotEmpty) {
-          return '$customerLabel cancelled $orderLabel: $cancelReason';
+        if (customerName.isNotEmpty) {
+          // Message for Admin
+          final amountLabel = totalPrice == null || totalPrice <= 0
+              ? ''
+              : ' - ${totalPrice.toStringAsFixed(0)} Frw';
+          return '$customerName placed $orderLabel.$amountLabel';
+        } else {
+          // Message for Client
+          return 'Your $orderLabel has been placed successfully.';
         }
-        return '$customerLabel cancelled $orderLabel.';
+      case 'order_cancelled':
+        if (customerName.isNotEmpty) {
+          // Message for Admin (client cancelled)
+          if (cancelReason.isNotEmpty) {
+            return '$customerName cancelled $orderLabel: $cancelReason';
+          }
+          return '$customerName cancelled $orderLabel.';
+        } else {
+          // Message for Client (admin cancelled)
+          return 'Your $orderLabel has been cancelled.';
+        }
       case 'payment_received':
-        final orderLabel = orderId.isNotEmpty
-            ? 'Order #$orderId'
-            : 'Your order';
         final amountLabel = paymentAmount == null || paymentAmount <= 0
             ? 'A payment'
             : '${paymentAmount.toStringAsFixed(0)} Frw';
         if (orderStatus == 'completed') {
-          return '$amountLabel was received for $orderLabel. Your order is now fully paid.';
+          return '$amountLabel was received for $orderLabel. It is now fully paid.';
         }
         return '$amountLabel was received for $orderLabel.';
       case 'order_status':
-        final orderLabel = orderId.isNotEmpty
-            ? 'Order #$orderId'
-            : 'Your order';
         if (orderStatus == 'completed') {
           return '$orderLabel is now fully paid and completed.';
+        }
+        if (orderStatus == 'cancelled') {
+          return '$orderLabel has been cancelled.';
         }
         return orderStatus.isEmpty
             ? '$orderLabel was updated.'

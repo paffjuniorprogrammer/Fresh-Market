@@ -67,7 +67,11 @@ class _PotatoAppState extends State<PotatoApp> {
   }
 
   Future<void> _handleIncomingLink(Uri uri) async {
-    if (uri.scheme != 'pafly') {
+    final isPaflyScheme = uri.scheme == 'pafly';
+    final isPaflyWebDomain = (uri.scheme == 'http' || uri.scheme == 'https') &&
+        (uri.host == 'www.pafly.rw' || uri.host == 'pafly.rw');
+
+    if (!isPaflyScheme && !isPaflyWebDomain) {
       return;
     }
 
@@ -112,6 +116,7 @@ class _PotatoAppState extends State<PotatoApp> {
     final normalized = uri.toString().toLowerCase();
     return uri.host == 'reset-password' ||
         uri.path.contains('reset-password') ||
+        uri.fragment.contains('reset-password') ||
         uri.queryParameters['type']?.toLowerCase() == 'recovery' ||
         normalized.contains('type=recovery');
   }
@@ -120,6 +125,7 @@ class _PotatoAppState extends State<PotatoApp> {
     final normalized = uri.toString().toLowerCase();
     return uri.host == 'auth-confirmation' ||
         uri.path.contains('auth-confirmation') ||
+        uri.fragment.contains('auth-confirmation') ||
         uri.queryParameters['type']?.toLowerCase() == 'signup' ||
         normalized.contains('type=signup');
   }

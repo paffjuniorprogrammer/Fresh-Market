@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class AppConstants {
   static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://qhpfppsdjmibucurucui.supabase.co');
   static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'sb_publishable_EmsYOaccLHFQg2FEFFn5qw_xxqUd1bo');
@@ -32,9 +34,12 @@ class AppConstants {
   static const String debtsView = 'outstanding_debts';
   static const String clientSummariesView = 'client_summaries';
   static const String productsBucket = 'products';
-  static const String authRecoveryRedirectUrl = 'pafly://reset-password';
-  static const String authConfirmationRedirectUrl =
-      'pafly://auth-confirmation';
+  static const String authRecoveryRedirectUrl = kIsWeb
+      ? 'https://www.pafly.rw/#/reset-password'
+      : 'pafly://reset-password';
+  static const String authConfirmationRedirectUrl = kIsWeb
+      ? 'https://www.pafly.rw/#/auth-confirmation'
+      : 'pafly://auth-confirmation';
   @Deprecated('Use authRecoveryRedirectUrl or authConfirmationRedirectUrl.')
   static const String authRedirectUrl = authRecoveryRedirectUrl;
   static const String ensureCurrentUserProfileRpc =

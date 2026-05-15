@@ -33,7 +33,12 @@ type NotificationTarget = {
   tokens: ClientTokenRow[];
 };
 
-type EventType = "order_status" | "payment_received" | "price_update";
+type EventType =
+  | "order_status"
+  | "payment_received"
+  | "price_update"
+  | "new_order"
+  | "order_cancelled";
 
 const CHANNEL_ID = "fresh_market_updates";
 
@@ -44,10 +49,13 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceRoleKey = (Deno.env.get("CUSTOM_SERVICE_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))?.trim();
+    const supabaseServiceRoleKey = (Deno.env.get("CUSTOM_SERVICE_KEY") ||
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))?.trim();
     const fcmProjectId = Deno.env.get("FCM_PROJECT_ID")?.trim();
     const fcmClientEmail = Deno.env.get("FCM_CLIENT_EMAIL")?.trim();
-    const fcmPrivateKey = Deno.env.get("FCM_PRIVATE_KEY")?.replace(/\\n/g, "\n").replace(/\r/g, "");
+    const fcmPrivateKey = Deno.env.get("FCM_PRIVATE_KEY")
+      ?.replace(/\\n/g, "\n")
+      .replace(/\r/g, "");
 
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       throw new Error("Missing Supabase service credentials.");
@@ -120,7 +128,10 @@ Deno.serve(async (req) => {
         );
 
         const responseBody = await response.text();
-        const invalidToken = isInvalidTokenResponse(response.status, responseBody);
+        const invalidToken = isInvalidTokenResponse(
+          response.status,
+          responseBody,
+        );
 
         if (invalidToken) {
           await supabaseAdmin
@@ -159,11 +170,18 @@ Deno.serve(async (req) => {
 });
 
 function normalizeEventType(value: string | undefined): EventType {
-  if (value === "order_status" || value === "payment_received" || value === "price_update") {
-    return value;
+  const validTypes: EventType[] = [
+    "order_status",
+    "payment_received",
+    "price_update",
+    "new_order",
+    "order_cancelled",
+  ];
+  if (value && (validTypes as string[]).includes(value)) {
+    return value as EventType;
   }
 
-  throw new Error("Invalid or missing eventType.");
+  throw new Error(`Invalid or missing eventType: ${value}`);
 }
 
 async function buildTarget(
@@ -225,7 +243,10 @@ async function resolveTargetUserId(
 
 function buildOrderMessage(
   payload: NotifyPayload,
-  eventType: Extract<EventType, "order_status" | "payment_received">,
+  eventType: Extract<
+    EventType,
+    "order_status" | "payment_received" | "new_order" | "order_cancelled"
+  >,
 ): Omit<NotificationTarget, "tokens"> {
   const orderId = toNumber(payload.orderId);
   const customerName = trimOrFallback(payload.customerName, "");
@@ -233,12 +254,51 @@ function buildOrderMessage(
   const productName = trimOrFallback(payload.productName, "order");
   const status = trimOrFallback(payload.orderStatus, "updated");
 
-  if (eventType === "order_status") {
+  if (eventType === "new_order") {
+    const totalPrice = toNumber(payload.totalPrice);
+    const amountStr = totalPrice > 0 ? ` for ${formatCurrency(totalPrice)} Frw` : "";
     return {
-      title: status.toLowerCase() === "completed" ? "🛒 Order Fully Paid" : "🛒 PAFLY Update",
-      body: `Thanks for shopping in PAFLY!\n\n` + (status.toLowerCase() === "completed"
-        ? `${orderLabel} is now fully paid and completed.`
-        : `${orderLabel} is now ${status}.`),
+      title: "✅ Order Placed",
+      body: `Thanks for shopping in PAFLY!\n\nYour ${orderLabel}${amountStr} has been received and is waiting for admin confirmation.`,
+      data: {
+        eventType,
+        orderId: String(orderId || ""),
+        customerName,
+        totalPrice: String(totalPrice),
+      },
+    };
+  }
+
+  if (eventType === "order_cancelled") {
+    return {
+      title: "❌ Order Cancelled",
+      body: `Thanks for shopping in PAFLY!\n\nYour ${orderLabel} has been cancelled.`,
+      data: {
+        eventType,
+        orderId: String(orderId || ""),
+        customerName,
+      },
+    };
+  }
+
+  if (eventType === "order_status") {
+    const isCompleted = status.toLowerCase() === "completed";
+    const isCancelled = status.toLowerCase() === "cancelled";
+
+    let title = "🛒 PAFLY Update";
+    let body = `Thanks for shopping in PAFLY!\n\n${orderLabel} is now ${status}.`;
+
+    if (isCompleted) {
+      title = "🛒 Order Fully Paid";
+      body = `Thanks for shopping in PAFLY!\n\n${orderLabel} is now fully paid and completed.`;
+    } else if (isCancelled) {
+      title = "❌ Order Cancelled";
+      body = `Thanks for shopping in PAFLY!\n\n${orderLabel} has been cancelled.`;
+    }
+
+    return {
+      title,
+      body,
       data: {
         eventType,
         orderId: String(orderId || ""),
