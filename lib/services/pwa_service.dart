@@ -10,6 +10,9 @@ class PwaService {
   final _installableController = StreamController<bool>.broadcast();
   Stream<bool> get installableStream => _installableController.stream;
   
+  final _updateController = StreamController<void>.broadcast();
+  Stream<void> get updateStream => _updateController.stream;
+
   bool _isInstallable = false;
   bool get isInstallable => _isInstallable;
 
@@ -20,6 +23,16 @@ class PwaService {
       _isInstallable = true;
       _installableController.add(true);
     });
+
+    JsHelper.setOnAppUpdateAvailable(() {
+      _updateController.add(null);
+    });
+  }
+
+  void reloadApp() {
+    if (kIsWeb) {
+      JsHelper.reloadApp();
+    }
   }
 
   Future<bool> triggerInstall() async {

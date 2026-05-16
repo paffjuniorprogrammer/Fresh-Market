@@ -27,6 +27,17 @@ class NotificationService {
     // Pre-load or prepare audio if needed
   }
 
+  Future<void> checkAndPromptPermissions() async {
+    final granted = await PushNotificationService.instance.isPermissionGranted();
+    if (!granted) {
+      _showSnackBar(
+        'Notifications are disabled in your phone settings. Enable them to get order updates.',
+        Icons.notifications_off_rounded,
+        Colors.orange,
+      );
+    }
+  }
+
   void _playNotificationSound() async {
     try {
       await _audioPlayer.play(AssetSource('audio/notification.mpeg'));

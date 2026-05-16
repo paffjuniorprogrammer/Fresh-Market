@@ -81,6 +81,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // 1. Check if email or phone already exists in the users table
+      final existingUser = await Supabase.instance.client
+          .from('users')
+          .select('email, phone')
+          .or('email.eq.$emailInput,phone.eq.$phone')
+          .maybeSingle();
+
+      if (existingUser != null) {
+        String conflictMessage = 'An account with this details already exists.';
+        if (existingUser['email'] == emailInput) {
+          conflictMessage = 'The email $emailInput is already registered.';
+        } else if (existingUser['phone'] == phone) {
+          conflictMessage = 'The phone number $phone is already registered.';
+        }
+        
+        if (mounted) {
+          PotatoNotification.show(
+            context,
+            message: conflictMessage,
+            type: PotatoNotificationType.error,
+          );
+          setState(() => _isLoading = false);
+        }
+        return;
+      }
+
       final email = emailInput;
       final res = await Supabase.instance.client.auth.signUp(
         email: email,

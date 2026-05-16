@@ -31,66 +31,7 @@ class ConfirmAccountScreen extends StatefulWidget {
 }
 
 class _ConfirmAccountScreenState extends State<ConfirmAccountScreen> {
-  final _otpController = TextEditingController();
   bool _isResending = false;
-  bool _isVerifying = false;
-
-  Future<void> _verifyOtp() async {
-    final code = _otpController.text.trim();
-    if (code.length != 6) {
-      PotatoNotification.show(
-        context,
-        message: 'Please enter the 6-digit code from your email.',
-        type: PotatoNotificationType.error,
-      );
-      return;
-    }
-
-    setState(() => _isVerifying = true);
-    try {
-      await Supabase.instance.client.auth.verifyOTP(
-        email: widget.email,
-        token: code,
-        type: OtpType.signup,
-      );
-
-      if (!mounted) return;
-      
-      PotatoNotification.show(
-        context,
-        message: 'Account confirmed successfully! You can now log in.',
-        type: PotatoNotificationType.success,
-      );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    } on AuthException catch (e) {
-      if (mounted) {
-        PotatoNotification.show(
-          context,
-          message: friendlyAuthErrorMessage(
-            e,
-            fallbackMessage: 'Invalid code. Please check and try again.',
-          ),
-          type: PotatoNotificationType.error,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        PotatoNotification.show(
-          context,
-          message: 'Verification failed. Please try again.',
-          type: PotatoNotificationType.error,
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isVerifying = false);
-      }
-    }
-  }
 
   Future<void> _resendConfirmationEmail() async {
     if (_isResending) return;
@@ -224,67 +165,9 @@ class _ConfirmAccountScreenState extends State<ConfirmAccountScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
-                        'OR enter the 6-digit code below:',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppUi.dark,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _otpController,
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        maxLength: 6,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          letterSpacing: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: '000000',
-                          counterText: '',
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _isVerifying ? null : _verifyOtp,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppUi.primary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                          child: _isVerifying
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'Verify Code',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                        ),
-                      ),
                       const SizedBox(height: 24),
                       const Divider(),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 24),
                       const Text(
                         'Did not get the email?',
                         style: TextStyle(

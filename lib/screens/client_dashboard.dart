@@ -44,6 +44,9 @@ class _ClientDashboardState extends State<ClientDashboard> {
   void initState() {
     super.initState();
     _loadProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(NotificationService.instance.checkAndPromptPermissions());
+    });
   }
 
   Future<void> _loadProfile() async {
@@ -1393,7 +1396,7 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
                             ),
                             const SizedBox(height: 14),
                             SizedBox(
-                              height: 216,
+                              height: 220,
                               child: productsWithImages.isEmpty
                                   ? FreshMarketHeroCard(
                                       title:
@@ -1420,26 +1423,9 @@ class _ClientHomeTabState extends State<_ClientHomeTab> {
                                         final product =
                                             productsWithImages[index %
                                                 productsWithImages.length];
-                                        final discount = product.hasDiscount
-                                            ? ((1 -
-                                                          (product.discountPrice! /
-                                                              (product.price <=
-                                                                      0
-                                                                  ? 1
-                                                                  : product
-                                                                        .price))) *
-                                                      100)
-                                                  .round()
-                                            : null;
-                                        return FreshMarketHeroCard(
-                                          title:
-                                              'Get Your Groceries Delivered Fresh!',
-                                          subtitle: product.name,
-                                          badgeText: discount != null
-                                              ? '$discount% OFF'
-                                              : 'Fresh Picks',
-                                          imageUrl: product.imageUrl,
-                                          onPressed: _showHeroHint,
+                                        return FreshMarketProductHeroCard(
+                                          product: product,
+                                          onTap: _showHeroHint,
                                         );
                                       },
                                     ),

@@ -301,54 +301,88 @@ class _GuestBrowseScreenState extends State<GuestBrowseScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  if (_promotions.isNotEmpty) ...[
-                    SizedBox(
-                      height: 180,
-                      child: PageView.builder(
-                        controller: _bannerPageController,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentBannerIndex = index % _promotions.length;
-                          });
-                        },
-                        itemBuilder: (context, index) {
-                          final promo = _promotions[index % _promotions.length];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: FreshMarketHeroCard(
-                              title: 'Vibrant Fresh Deals',
-                              subtitle: promo.title,
-                              badgeText: 'DEAL',
-                              imageUrl: promo.imageUrl,
-                              onPressed: () {
-                                // Navigate to promo or specific product
+                  StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: _productsStream,
+                    builder: (context, snapshot) {
+                      final products = (snapshot.data ?? [])
+                          .map((j) => Product.fromJson(j))
+                          .where((p) => p.isAvailable && p.imageUrl.isNotEmpty && p.hasDiscount)
+                          .toList();
+
+                      if (products.isEmpty) {
+                        if (_promotions.isEmpty) return const SizedBox.shrink();
+                        return Column(
+                          children: [
+                            SizedBox(
+                              height: 220,
+                              child: PageView.builder(
+                                controller: _bannerPageController,
+                                onPageChanged: (index) {
+                                  setState(() {
+                                    _currentBannerIndex = index % _promotions.length;
+                                  });
+                                },
+                                itemBuilder: (context, index) {
+                                  final promo = _promotions[index % _promotions.length];
+                                  return FreshMarketHeroCard(
+                                    title: 'Fresh Deals Today',
+                                    subtitle: promo.title,
+                                    badgeText: 'DEAL',
+                                    imageUrl: promo.imageUrl,
+                                    onPressed: widget.onLoginTapped,
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        );
+                      }
+
+                      return Column(
+                        children: [
+                          SizedBox(
+                            height: 220,
+                            child: PageView.builder(
+                              controller: _bannerPageController,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _currentBannerIndex = index % products.length;
+                                });
+                              },
+                              itemBuilder: (context, index) {
+                                final product = products[index % products.length];
+                                return FreshMarketProductHeroCard(
+                                  product: product,
+                                  onTap: widget.onLoginTapped,
+                                );
                               },
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        _promotions.length,
-                        (index) => AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          height: 8,
-                          width: _currentBannerIndex == index ? 24 : 8,
-                          decoration: BoxDecoration(
-                            color: _currentBannerIndex == index
-                                ? AppUi.primary
-                                : Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(4),
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              products.length,
+                              (index) => AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                height: 8,
+                                width: _currentBannerIndex == index ? 24 : 8,
+                                decoration: BoxDecoration(
+                                  color: _currentBannerIndex == index
+                                      ? AppUi.primary
+                                      : Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      );
+                    },
+                  ),
                   if (_categories.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     SizedBox(

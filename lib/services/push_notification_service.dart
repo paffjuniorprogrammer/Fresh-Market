@@ -93,6 +93,20 @@ class PushNotificationService {
     }
   }
 
+  Future<bool> isPermissionGranted() async {
+    if (kIsWeb) {
+      final status = await FirebaseMessaging.instance.requestPermission();
+      return status.authorizationStatus == AuthorizationStatus.authorized;
+    }
+    
+    // On Android/iOS, check local notifications permission too
+    final isEnabled = await _localNotifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.areNotificationsEnabled();
+    
+    return isEnabled ?? false;
+  }
+
   Future<void> registerAdminDevice(String userId) => _registerDevice(
     userId: userId,
     tokenTable: AppConstants.adminTokensTable,

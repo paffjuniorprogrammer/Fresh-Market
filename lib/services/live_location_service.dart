@@ -106,6 +106,15 @@ class LiveLocationService {
     }
 
     await _positionSubscription?.cancel();
+
+    // 1. Try to get last known position immediately for instant feedback
+    try {
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        await _sendLocation(lastKnown);
+      }
+    } catch (_) {}
+
     _positionSubscription =
         Geolocator.getPositionStream(
           locationSettings: const LocationSettings(
@@ -124,17 +133,21 @@ class LiveLocationService {
         );
 
     try {
+      // 2. Request current position with a timeout to prevent hanging
       final currentPosition = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
         ),
       );
       await _sendLocation(currentPosition);
     } catch (_) {
-      trackingState.value = const LiveLocationTrackingState(
-        status: LiveLocationTrackingStatus.tracking,
-        message: 'Waiting for your next live location update...',
-      );
+      if (currentPosition.value == null) {
+        trackingState.value = const LiveLocationTrackingState(
+          status: LiveLocationTrackingStatus.tracking,
+          message: 'Waiting for your next live location update...',
+        );
+      }
     }
   }
 
@@ -216,15 +229,14 @@ class LiveLocationService {
   }) async {
     try {
       Position? position = currentPosition.value;
-      if (position == null) {
-        position = await Geolocator.getLastKnownPosition();
-        position ??= await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-          ),
-        );
-        currentPosition.value = position;
-      }
+      position ??= await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium, // Lower accuracy for faster response
+          timeLimit: Duration(seconds: 5),
+        ),
+      );
+      currentPosition.value = position;
 
       final distanceMeters = Geolocator.distanceBetween(
         position.latitude,

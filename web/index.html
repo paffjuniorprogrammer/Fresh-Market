@@ -18,7 +18,28 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="PAFLY">
+  
+  <!-- SEO Meta Tags -->
+  <title>PAFLY - Fresh Market & Grocery Delivery Rwanda</title>
+  <meta name="title" content="PAFLY - Fresh Market & Grocery Delivery Rwanda">
+  <meta name="description" content="PAFLY is Rwanda's premier online fresh market. Shop high-quality fruits, vegetables, and local groceries with fast delivery to your doorstep in Kigali and beyond.">
+  <meta name="keywords" content="PAFLY, Rwanda, Kigali, Fresh Market, Grocery Delivery, Online Shopping Rwanda, Fresh Fruits, Vegetables Kigali, Local Market">
+  <meta name="author" content="PAFLY">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.pafly.rw/">
+  <meta property="og:title" content="PAFLY - Fresh Market & Grocery Delivery Rwanda">
+  <meta property="og:description" content="Shop high-quality fruits, vegetables, and local groceries with fast delivery to your doorstep. Freshness guaranteed.">
+  <meta property="og:image" content="https://www.pafly.rw/icons/Icon-512.png">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://www.pafly.rw/">
+  <meta property="twitter:title" content="PAFLY - Fresh Market & Grocery Delivery Rwanda">
+  <meta property="twitter:description" content="Shop high-quality fruits, vegetables, and local groceries with fast delivery to your doorstep. Freshness guaranteed.">
+  <meta property="twitter:image" content="https://www.pafly.rw/icons/Icon-512.png">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -32,26 +53,88 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>PAFLY</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <!-- INSTANT LOADING SPLASH SCREEN -->
+  <div id="loading-indicator">
+    <div class="spinner-container">
+      <img src="icons/Icon-192.png" alt="PAFLY Logo" class="pulse-logo">
+      <div class="loader"></div>
+      <p class="loading-text">Preparing fresh groceries...</p>
+    </div>
+  </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #F4F7EF; /* PAFLY background */
+      overflow: hidden;
+    }
+    #loading-indicator {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 9999;
+      background-color: #F4F7EF;
+      transition: opacity 0.6s ease-out;
+    }
+    .spinner-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .pulse-logo {
+      width: 110px;
+      height: 110px;
+      border-radius: 28px;
+      animation: pulse 1.5s infinite ease-in-out alternate;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+      margin-bottom: 35px;
+      background-color: white;
+      padding: 10px;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.96); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+      100% { transform: scale(1.04); box-shadow: 0 15px 35px rgba(0,0,0,0.12); }
+    }
+    .loader {
+      width: 42px;
+      height: 42px;
+      border: 4px solid rgba(74, 167, 74, 0.15);
+      border-bottom-color: #4AA74A; /* PAFLY Primary */
+      border-radius: 50%;
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite;
+    }
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-text {
+      margin-top: 24px;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #2D372F;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+    }
+  </style>
+
   <script>
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       deferredPrompt = e;
-      // Notify Flutter that the app is installable
       if (window.onAppInstallable) {
         window.onAppInstallable();
       }
@@ -67,6 +150,39 @@
       }
       return false;
     };
+
+    // PWA Update Logic
+    window.addEventListener('load', function() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(function(registration) {
+          registration.addEventListener('updatefound', function() {
+            const newWorker = registration.installing;
+            newWorker.addEventListener('statechange', function() {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                if (window.onAppUpdateAvailable) {
+                  window.onAppUpdateAvailable();
+                }
+              }
+            });
+          });
+        });
+      }
+    });
+
+    window.reloadApp = function() {
+      window.location.reload();
+    };
+
+    // Remove loading indicator when Flutter app is ready
+    window.addEventListener('flutter-first-useful-frame', function() {
+      var loader = document.getElementById('loading-indicator');
+      if (loader) {
+        loader.style.opacity = '0';
+        setTimeout(function() {
+          loader.remove();
+        }, 600);
+      }
+    });
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

@@ -11,4 +11,12 @@ abstract class JsHelper {
     final result = await js.context.callMethod('triggerAppInstall');
     return result == true;
   }
+
+  static void setOnAppUpdateAvailable(void Function() callback) {
+    js.context['onAppUpdateAvailable'] = callback;
+  }
+
+  static void reloadApp() {
+    js.context.callMethod('reloadApp');
+  }
 }

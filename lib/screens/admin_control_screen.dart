@@ -704,6 +704,9 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
     NotificationService.instance.setupAdminListener();
     _setupRealtimeSync();
     _loadAdminData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(NotificationService.instance.checkAndPromptPermissions());
+    });
   }
 
   @override

@@ -40,6 +40,7 @@ class PotatoApp extends StatefulWidget {
 class _PotatoAppState extends State<PotatoApp> {
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
+  StreamSubscription<void>? _updateSubscription;
 
   @override
   void initState() {
@@ -48,6 +49,53 @@ class _PotatoAppState extends State<PotatoApp> {
       unawaited(_initializeDeferredServices());
     });
     unawaited(_initializeDeepLinkHandling());
+    
+    _updateSubscription = PwaService.instance.updateStream.listen((_) {
+      _showUpdateDialog();
+    });
+  }
+
+  void _showUpdateDialog() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = NotificationService.instance.navigatorKey.currentContext;
+      if (context == null) return;
+      
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.system_update_rounded, color: AppUi.primary, size: 28),
+              SizedBox(width: 12),
+              Text('Update Available', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            'A new version of PAFLY is available. Please update to get the latest features and improvements.',
+            style: TextStyle(fontSize: 15, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('LATER', style: TextStyle(color: Colors.grey)),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                PwaService.instance.reloadApp();
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: AppUi.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('UPDATE NOW', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Future<void> _initializeDeepLinkHandling() async {
@@ -90,6 +138,12 @@ class _PotatoAppState extends State<PotatoApp> {
       AuthFlowState.instance.clearPasswordRecoveryPending();
       AuthFlowState.instance.clearSignupConfirmationPending();
 
+      // If we already have a session, maybe the link was just a duplicate click
+      if (Supabase.instance.client.auth.currentSession != null) {
+        debugPrint('Session already exists, ignoring deep link error.');
+        return;
+      }
+
       final errorStr = error.toString().toLowerCase();
       String userMessage = 'The link is invalid or has expired.';
       
@@ -97,15 +151,31 @@ class _PotatoAppState extends State<PotatoApp> {
         userMessage = 'This email link has already been used or has expired. Please request a new one.';
       } else if (errorStr.contains('pkce')) {
         userMessage = 'Authentication session mismatch. Please try again from the login screen.';
+      } else if (errorStr.contains('already been used')) {
+        userMessage = 'This link has already been used. Please log in normally.';
       }
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         NotificationService.instance.messengerKey.currentState?.showSnackBar(
           SnackBar(
-            content: Text(userMessage),
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text(userMessage)),
+              ],
+            ),
             backgroundColor: Colors.red.shade800,
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'RETRY',
+              textColor: Colors.white,
+              onPressed: () {
+                // Navigate to login or home
+              },
+            ),
           ),
         );
       });
@@ -133,6 +203,7 @@ class _PotatoAppState extends State<PotatoApp> {
   @override
   void dispose() {
     unawaited(_linkSubscription?.cancel());
+    unawaited(_updateSubscription?.cancel());
     super.dispose();
   }
 
