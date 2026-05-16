@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:potato_app/utils/constants.dart';
+import 'package:potato_app/services/notification_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -23,11 +24,6 @@ class PushNotificationService {
   PushNotificationService._();
 
   static final PushNotificationService instance = PushNotificationService._();
-
-
-
-
-
 
   bool _initialized = false;
   bool _firebaseReady = false;
@@ -50,8 +46,6 @@ class PushNotificationService {
   Future<void> _initializeInternal() async {
     if (_initialized) return;
     _initialized = true;
-
-
 
     try {
       if (kIsWeb) {
@@ -82,6 +76,19 @@ class PushNotificationService {
         sound: true,
       );
 
+      // Listen for messages while the app is in the foreground
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        final title = message.notification?.title ?? message.data['title'] ?? 'New Notification';
+        final body = message.notification?.body ?? message.data['body'] ?? '';
+        
+        NotificationService.instance.messengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text('$title\n$body'),
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      });
 
       _firebaseReady = true;
     } catch (error) {

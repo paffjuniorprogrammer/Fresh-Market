@@ -19,13 +19,13 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  // Customize notification here
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/icons/Icon-192.png'
-  };
+  if (payload && payload.notification) {
+    const notificationTitle = payload.notification.title;
+    const notificationOptions = {
+      body: payload.notification.body,
+      icon: 'icons/Icon-192.png' // relative path works with github pages
+    };
 
-  return self.registration.showNotification(notificationTitle,
-    notificationOptions);
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+  }
 });

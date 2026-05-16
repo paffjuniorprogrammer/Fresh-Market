@@ -1,0 +1,10 @@
+project_id = "qhpfppsdjmibucurucui"
+
+[functions.notify-admin-new-order]
+verify_jwt = false
+
+[functions.notify-client-event]
+verify_jwt = false
+
+[functions.record-order-payment]
+verify_jwt = false
