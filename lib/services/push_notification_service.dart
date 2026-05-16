@@ -5,7 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:potato_app/utils/constants.dart';
@@ -33,8 +33,7 @@ class PushNotificationService {
   static const _updatesChannelDescription =
       'Client payment and order status updates from PAFLY.';
 
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
+
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool _initialized = false;
@@ -59,7 +58,7 @@ class PushNotificationService {
     if (_initialized) return;
     _initialized = true;
 
-    await _initializeLocalNotifications();
+
 
     try {
       if (kIsWeb) {
@@ -104,12 +103,8 @@ class PushNotificationService {
       return status.authorizationStatus == AuthorizationStatus.authorized;
     }
     
-    // On Android/iOS, check local notifications permission too
-    final isEnabled = await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.areNotificationsEnabled();
-    
-    return isEnabled ?? false;
+    final status = await FirebaseMessaging.instance.requestPermission();
+    return status.authorizationStatus == AuthorizationStatus.authorized;
   }
 
   Future<void> registerAdminDevice(String userId) => _registerDevice(
@@ -241,76 +236,13 @@ class PushNotificationService {
     }
   }
 
-  Future<void> _initializeLocalNotifications() async {
-    const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
-    );
-    const iosSettings = DarwinInitializationSettings();
-    const settings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
-
-    await _localNotifications.initialize(settings);
-
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
-
-    final androidNotifications = _localNotifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
-
-    await androidNotifications?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _ordersChannelId,
-        _ordersChannelName,
-        description: _ordersChannelDescription,
-        importance: Importance.max,
-      ),
-    );
-
-    await androidNotifications?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _updatesChannelId,
-        _updatesChannelName,
-        description: _updatesChannelDescription,
-        importance: Importance.high,
-      ),
-    );
-  }
-
   Future<void> showLocalNotification({
     required String title,
     required String body,
     bool playSound = true,
   }) async {
-    await initialize();
-
-    await _localNotifications.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title,
-      body,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          _ordersChannelId,
-          _ordersChannelName,
-          channelDescription: _ordersChannelDescription,
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-    );
-
+    // Rely completely on Firebase Cloud Messaging to handle foreground alerts.
+    // Instead of local notifications, we can just play the notification sound.
     if (!playSound) return;
     try {
       await _audioPlayer.play(AssetSource('audio/notification.mpeg'));

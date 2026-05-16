@@ -19,7 +19,7 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy notify-client-event
-        run: supabase functions deploy notify-client-event --project-ref qhpfppsdjmibucurucui --no-verify
+      - name: Deploy All Functions
+        run: supabase functions deploy --project-ref qhpfppsdjmibucurucui --no-verify-jwt
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
