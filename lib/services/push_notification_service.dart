@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:audioplayers/audioplayers.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -24,17 +24,10 @@ class PushNotificationService {
 
   static final PushNotificationService instance = PushNotificationService._();
 
-  static const _ordersChannelId = 'fresh_market_orders';
-  static const _ordersChannelName = 'PAFLY Orders';
-  static const _ordersChannelDescription =
-      'Loud admin alerts for new client orders and cancellations.';
-  static const _updatesChannelId = 'fresh_market_updates';
-  static const _updatesChannelName = 'PAFLY Updates';
-  static const _updatesChannelDescription =
-      'Client payment and order status updates from PAFLY.';
 
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
+
+
 
   bool _initialized = false;
   bool _firebaseReady = false;
@@ -89,7 +82,7 @@ class PushNotificationService {
         sound: true,
       );
 
-      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+
       _firebaseReady = true;
     } catch (error) {
       debugPrint('Firebase push init skipped: $error');
@@ -236,110 +229,7 @@ class PushNotificationService {
     }
   }
 
-  Future<void> showLocalNotification({
-    required String title,
-    required String body,
-    bool playSound = true,
-  }) async {
-    // Rely completely on Firebase Cloud Messaging to handle foreground alerts.
-    // Instead of local notifications, we can just play the notification sound.
-    if (!playSound) return;
-    try {
-      await _audioPlayer.play(AssetSource('audio/notification.mpeg'));
-    } catch (error) {
-      debugPrint('Local notification asset sound failed: $error');
-    }
-  }
 
-  Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    final notification = message.notification;
-    final businessName = AppConstants.defaultBusinessName; // This is 'PAFLY'
-    final title =
-        notification?.title ??
-        _foregroundTitleFromData(message.data) ??
-        businessName;
-    final body =
-        notification?.body ??
-        _foregroundBodyFromData(message.data) ??
-        'You have a new update.';
-
-    await showLocalNotification(title: title, body: body);
-  }
-
-  String? _foregroundTitleFromData(Map<String, dynamic> data) {
-    final eventType = '${data['eventType'] ?? ''}'.trim().toLowerCase();
-    switch (eventType) {
-      case 'new_order':
-        return 'Order Placed';
-      case 'order_cancelled':
-        return 'Order Cancelled';
-      case 'order_status':
-        return 'Order Updated';
-      case 'payment_received':
-        return 'Payment Received';
-      case 'price_update':
-        return 'Price Update';
-      default:
-        return null;
-    }
-  }
-
-  String? _foregroundBodyFromData(Map<String, dynamic> data) {
-    final eventType = '${data['eventType'] ?? ''}'.trim().toLowerCase();
-    final orderId = '${data['orderId'] ?? ''}'.trim();
-    final customerName = '${data['customerName'] ?? ''}'.trim();
-    final totalPrice = double.tryParse('${data['totalPrice'] ?? ''}');
-    final paymentAmount = double.tryParse('${data['paymentAmount'] ?? ''}');
-    final orderStatus = '${data['orderStatus'] ?? ''}'.trim().toLowerCase();
-    final cancelReason = '${data['cancelReason'] ?? ''}'.trim();
-
-    final orderLabel = orderId.isNotEmpty ? 'Order #$orderId' : 'An order';
-
-    switch (eventType) {
-      case 'new_order':
-        if (customerName.isNotEmpty) {
-          // Message for Admin
-          final amountLabel = totalPrice == null || totalPrice <= 0
-              ? ''
-              : ' - ${totalPrice.toStringAsFixed(0)} Frw';
-          return '$customerName placed $orderLabel.$amountLabel';
-        } else {
-          // Message for Client
-          return 'Your $orderLabel has been placed successfully.';
-        }
-      case 'order_cancelled':
-        if (customerName.isNotEmpty) {
-          // Message for Admin (client cancelled)
-          if (cancelReason.isNotEmpty) {
-            return '$customerName cancelled $orderLabel: $cancelReason';
-          }
-          return '$customerName cancelled $orderLabel.';
-        } else {
-          // Message for Client (admin cancelled)
-          return 'Your $orderLabel has been cancelled.';
-        }
-      case 'payment_received':
-        final amountLabel = paymentAmount == null || paymentAmount <= 0
-            ? 'A payment'
-            : '${paymentAmount.toStringAsFixed(0)} Frw';
-        if (orderStatus == 'completed') {
-          return '$amountLabel was received for $orderLabel. It is now fully paid.';
-        }
-        return '$amountLabel was received for $orderLabel.';
-      case 'order_status':
-        if (orderStatus == 'completed') {
-          return '$orderLabel is now fully paid and completed.';
-        }
-        if (orderStatus == 'cancelled') {
-          return '$orderLabel has been cancelled.';
-        }
-        return orderStatus.isEmpty
-            ? '$orderLabel was updated.'
-            : '$orderLabel is now ${data['orderStatus']}.';
-      default:
-        return null;
-    }
-  }
 
   Future<void> _upsertDeviceToken(
     String tokenTable,

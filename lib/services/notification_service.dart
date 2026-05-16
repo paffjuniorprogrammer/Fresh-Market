@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:audioplayers/audioplayers.dart';
+
 import 'package:potato_app/services/ui_service.dart';
 import 'package:potato_app/services/push_notification_service.dart';
 
@@ -10,7 +10,7 @@ class NotificationService {
   static final NotificationService instance = NotificationService._internal();
   NotificationService._internal();
 
-  final _audioPlayer = AudioPlayer();
+
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   final _navigatorKey = GlobalKey<NavigatorState>();
 
@@ -38,13 +38,7 @@ class NotificationService {
     }
   }
 
-  void _playNotificationSound() async {
-    try {
-      await _audioPlayer.play(AssetSource('audio/notification.mpeg'));
-    } catch (e) {
-      debugPrint('Error playing sound: $e');
-    }
-  }
+
 
   void setupAdminListener() {
     _adminChannel?.unsubscribe();
@@ -67,16 +61,7 @@ class NotificationService {
             final message =
                 '$customerName placed Order #${newOrder['id']} • $paymentMethod$totalLabel';
             _showSnackBar(message, Icons.shopping_cart, Colors.green);
-            if (!PushNotificationService.instance.isFirebaseReady) {
-              unawaited(
-                PushNotificationService.instance.showLocalNotification(
-                  title: 'New customer order',
-                  body: message,
-                  playSound: false,
-                ),
-              );
-            }
-            _playNotificationSound();
+
           },
         )
         .onPostgresChanges(
@@ -104,29 +89,12 @@ class NotificationService {
               final message =
                   '$customerName cancelled Order #${updatedOrder['id']}$reasonSuffix';
               _showSnackBar(message, Icons.cancel_outlined, Colors.red);
-              if (!PushNotificationService.instance.isFirebaseReady) {
-                unawaited(
-                  PushNotificationService.instance.showLocalNotification(
-                    title: 'Order cancelled by client',
-                    body: message,
-                    playSound: false,
-                  ),
-                );
-              }
+
             } else {
               final message = 'Order #${updatedOrder['id']} status: $newStatus';
               _showSnackBar(message, Icons.info_outline, Colors.blue);
-              if (!PushNotificationService.instance.isFirebaseReady) {
-                unawaited(
-                  PushNotificationService.instance.showLocalNotification(
-                    title: 'PAFLY update',
-                    body: message,
-                    playSound: false,
-                  ),
-                );
-              }
             }
-            _playNotificationSound();
+
           },
         )
         .subscribe();
@@ -155,7 +123,7 @@ class NotificationService {
                 Icons.info_outline,
                 Colors.blue,
               );
-              _playNotificationSound();
+
             }
           },
         )
@@ -177,6 +145,6 @@ class NotificationService {
   void dispose() {
     _adminChannel?.unsubscribe();
     _clientChannel?.unsubscribe();
-    _audioPlayer.dispose();
+
   }
 }
