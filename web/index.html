@@ -61,7 +61,7 @@
     <div class="spinner-container">
       <img src="icons/Icon-192.png" alt="PAFLY Logo" class="pulse-logo">
       <div class="loader"></div>
-      <p class="loading-text">Preparing fresh groceries...</p>
+      <p class="loading-text">Welcome to PAFLY...</p>
     </div>
   </div>
 
@@ -173,15 +173,37 @@
       window.location.reload();
     };
 
-    // Remove loading indicator when Flutter app is ready
-    window.addEventListener('flutter-first-useful-frame', function() {
+    // Safely hide the loader when Flutter renders
+    function hideLoader() {
       var loader = document.getElementById('loading-indicator');
       if (loader) {
         loader.style.opacity = '0';
         setTimeout(function() {
-          loader.remove();
+          if (loader.parentNode) {
+            loader.parentNode.removeChild(loader);
+          }
         }, 600);
       }
+    }
+
+    // Modern observer to detect when Flutter adds its canvas/view to the body
+    const observer = new MutationObserver(function(mutations) {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.tagName === 'FLUTTER-VIEW' || node.tagName === 'FLT-GLASS-PANE') {
+            hideLoader();
+            observer.disconnect();
+            return;
+          }
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Fallback: also listen to the first useful frame event just in case
+    window.addEventListener('flutter-first-useful-frame', function() {
+      hideLoader();
+      observer.disconnect();
     });
   </script>
   <script src="flutter_bootstrap.js" async></script>
