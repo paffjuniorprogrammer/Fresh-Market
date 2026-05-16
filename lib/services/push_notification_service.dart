@@ -63,6 +63,11 @@ class PushNotificationService {
 
     try {
       if (kIsWeb) {
+        if (AppConstants.firebaseApiKey.isEmpty) {
+          debugPrint('Firebase Web API Key is missing. Skipping Push Notifications initialization.');
+          _firebaseReady = false;
+          return;
+        }
         await Firebase.initializeApp(
           options: const FirebaseOptions(
             apiKey: AppConstants.firebaseApiKey,
