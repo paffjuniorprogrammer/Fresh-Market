@@ -205,6 +205,12 @@
       hideLoader();
       observer.disconnect();
     });
+
+    // Hard fallback: Hide loader after 2.5s to prevent infinite loading screens
+    setTimeout(function() {
+      hideLoader();
+      observer.disconnect();
+    }, 2500);
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

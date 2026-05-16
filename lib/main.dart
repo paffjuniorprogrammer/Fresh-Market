@@ -131,6 +131,27 @@ class _PotatoAppState extends State<PotatoApp> {
         AuthFlowState.instance.markSignupConfirmationPending();
       }
       await Supabase.instance.client.auth.getSessionFromUrl(uri);
+      
+      // Show success message if it was a confirmation link
+      if (_isSignupConfirmationLink(uri)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          NotificationService.instance.messengerKey.currentState?.showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle_outline, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('Account confirmed successfully! Welcome to PAFLY.')),
+                ],
+              ),
+              backgroundColor: Colors.green.shade700,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        });
+      }
     } catch (error) {
       debugPrint('Auth deep link handling error: $error');
       

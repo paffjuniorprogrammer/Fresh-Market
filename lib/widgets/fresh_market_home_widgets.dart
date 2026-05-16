@@ -198,12 +198,15 @@ class FreshMarketProductHeroCard extends StatelessWidget {
         height: 220,
         margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0052CC), Color(0xFF1B8049)], // Blue to deep green
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: const Color(0xFFE7ECDC)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: const Color(0xFF0052CC).withValues(alpha: 0.25),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -217,10 +220,22 @@ class FreshMarketProductHeroCard extends StatelessWidget {
                 right: -20,
                 bottom: -20,
                 child: Opacity(
-                  opacity: 0.05,
+                  opacity: 0.1,
                   child: Image.asset(
                     'assets/logo.png',
                     width: 180,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: -30,
+                top: -30,
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
                 ),
               ),
@@ -237,13 +252,13 @@ class FreshMarketProductHeroCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFEBEE),
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
                                 'SAVE $discountPercent%',
                                 style: const TextStyle(
-                                  color: Color(0xFFD32F2F),
+                                  color: Color(0xFF0052CC),
                                   fontWeight: FontWeight.w900,
                                   fontSize: 12,
                                 ),
@@ -253,13 +268,14 @@ class FreshMarketProductHeroCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE8F5E9),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
                               ),
                               child: const Text(
                                 'FRESH PICK',
                                 style: TextStyle(
-                                  color: Color(0xFF2E7D32),
+                                  color: Colors.white,
                                   fontWeight: FontWeight.w900,
                                   fontSize: 12,
                                 ),
@@ -273,7 +289,7 @@ class FreshMarketProductHeroCard extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.w900,
-                              color: AppUi.dark,
+                              color: Colors.white,
                               height: 1.1,
                             ),
                           ),
@@ -287,7 +303,7 @@ class FreshMarketProductHeroCard extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w900,
-                                  color: AppUi.primary,
+                                  color: Colors.white,
                                 ),
                               ),
                               const SizedBox(width: 4),
@@ -295,7 +311,7 @@ class FreshMarketProductHeroCard extends StatelessWidget {
                                 '/${product.unit}',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey.shade500,
+                                  color: Colors.white.withValues(alpha: 0.8),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -306,22 +322,30 @@ class FreshMarketProductHeroCard extends StatelessWidget {
                               moneyLabel(product.price),
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey.shade400,
+                                color: Colors.white.withValues(alpha: 0.6),
                                 fontWeight: FontWeight.w600,
                                 decoration: TextDecoration.lineThrough,
+                                decorationColor: Colors.white.withValues(alpha: 0.6),
                               ),
                             ),
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                             decoration: BoxDecoration(
-                              color: AppUi.primary,
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(15),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             child: const Text(
                               'Order Now',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Color(0xFF0052CC),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
@@ -336,23 +360,24 @@ class FreshMarketProductHeroCard extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(25),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
+                              color: Colors.black.withValues(alpha: 0.15),
                               blurRadius: 15,
                               offset: const Offset(0, 5),
                             ),
                           ],
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(25),
+                          borderRadius: BorderRadius.circular(23),
                           child: CachedNetworkImage(
                             imageUrl: product.imageUrl,
                             fit: BoxFit.cover,
                             height: double.infinity,
                             placeholder: (context, url) => Shimmer.fromColors(
-                              baseColor: Colors.grey.shade200,
-                              highlightColor: Colors.white,
+                              baseColor: Colors.white.withValues(alpha: 0.1),
+                              highlightColor: Colors.white.withValues(alpha: 0.3),
                               child: Container(color: Colors.white),
                             ),
                             errorWidget: (context, url, error) => Image.asset('assets/logo.png'),
