@@ -5,11 +5,11 @@ class AppConstants {
   static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'sb_publishable_EmsYOaccLHFQg2FEFFn5qw_xxqUd1bo');
   
   // Firebase Web Configuration
-  static const String firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY', defaultValue: '');
+  static const String firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY', defaultValue: 'AIzaSyAyXcvufbiAIAyHBZwI3-QLELNDt1VdYe8');
   static const String firebaseProjectId = String.fromEnvironment('FIREBASE_PROJECT_ID', defaultValue: 'potato-dashboard-fcm-777666');
   static const String firebaseMessagingSenderId = String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID', defaultValue: '351902567984');
   static const String firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID', defaultValue: '1:351902567984:web:0b0e474a8c42b4b8e327f5');
-  static const String firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY', defaultValue: '');
+  static const String firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY', defaultValue: 'BFyIevcMUtkTPuoBww8qHY7v7JhQG8AVtgOwhTRC7l5Ih6kACf7voevBziOuPrcENcB9FJjcwQpAGw85XVsAjTE');
 
   static const String defaultBusinessName = 'PAFLY';
 
