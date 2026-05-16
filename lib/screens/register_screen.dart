@@ -82,14 +82,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       // 1. Check if email or phone already exists in the users table
-      final existingUser = await Supabase.instance.client
+      final existingUsers = await Supabase.instance.client
           .from('users')
           .select('email, phone')
           .or('email.eq.$emailInput,phone.eq.$phone')
-          .maybeSingle();
+          .limit(1);
 
-      if (existingUser != null) {
-        String conflictMessage = 'An account with this details already exists.';
+      if (existingUsers.isNotEmpty) {
+        final existingUser = existingUsers.first;
+        String conflictMessage = 'An account with these details already exists.';
         if (existingUser['email'] == emailInput) {
           conflictMessage = 'The email $emailInput is already registered.';
         } else if (existingUser['phone'] == phone) {
@@ -126,6 +127,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final createdUser = res.user;
       final identities = createdUser?.identities ?? [];
+      
+      // Supabase returns a fake success with empty identities if the email is already taken
+      if (createdUser != null && identities.isEmpty) {
+        PotatoNotification.show(
+          context,
+          message: 'This email is already registered. Please log in instead.',
+          type: PotatoNotificationType.error,
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
       debugPrint('Registration successful. User ID: ${createdUser?.id}');
       debugPrint('Identities found: ${identities.length}');
       final isEmailConfirmed = createdUser?.emailConfirmedAt != null;
